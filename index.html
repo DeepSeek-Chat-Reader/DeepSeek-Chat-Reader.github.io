@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek导出对话查看器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f5f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --request-color: #e3f2fd;
+            --response-color: #f1f8e9;
+            --think-color: #fff3e0;
+            --search-color: #e8f5e9;
+            --reasoner-color: #bb86fc;
+            --chat-color: #03dac6;
+            --sidebar-width: 320px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 12px 20px;
+            background: var(--card-bg);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .upload-section {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-filters {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f9f9f9;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px 8px 35px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .filter-options label {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .filter-options input {
+            margin-right: 4px;
+        }
+
+        .date-filter {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .date-filter input {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .conversation-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .conversation-detail {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--card-bg);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .json-input {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-family: monospace;
+            resize: vertical;
+            font-size: 0.9rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .conversation-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .conversation-item:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .conversation-item.active {
+            background-color: rgba(52, 152, 219, 0.2);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .conversation-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: var(--primary-color);
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conversation-time {
+            font-size: 0.8rem;
+            color: #777;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .message-content {
+            padding: 15px;
+        }
+
+        .request .message-header {
+            background-color: rgba(52, 152, 219, 0.15);
+            color: #1967a2;
+        }
+
+        .request .message-content {
+            background-color: var(--request-color);
+        }
+
+        .response .message-header {
+            background-color: rgba(46, 204, 113, 0.15);
+            color: #1e7e34;
+        }
+
+        .response .message-content {
+            background-color: var(--response-color);
+        }
+
+        .think .message-header {
+            background-color: rgba(255, 179, 0, 0.15);
+            color: #b36b00;
+        }
+
+        .think .message-content {
+            background-color: var(--think-color);
+        }
+
+        .search .message-header {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: #2e7d32;
+        }
+
+        .search .message-content {
+            background-color: var(--search-color);
+        }
+
+        .model-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
+        .reasoner {
+            background-color: var(--reasoner-color);
+            color: white;
+        }
+
+        .chat {
+            background-color: var(--chat-color);
+            color: black;
+        }
+
+        .conversation-tree {
+            margin-left: 10px;
+            padding-left: 15px;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .tree-node {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .tree-node::before {
+            content: "";
+            position: absolute;
+            top: 15px;
+            left: -16px;
+            width: 12px;
+            height: 2px;
+            background: var(--border-color);
+        }
+
+        .tree-node::after {
+            content: "";
+            position: absolute;
+            top: -8px;
+            left: -16px;
+            width: 2px;
+            height: 25px;
+            background: var(--border-color);
+        }
+
+        .tree-node:first-child::after {
+            top: 15px;
+            height: 10px;
+        }
+
+        .tree-node:last-child::after {
+            height: 15px;
+        }
+
+        .tree-node:only-child::after {
+            display: none;
+        }
+
+        .code-block {
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .code-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .code-btn {
+            background: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 3px;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .code-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        pre {
+            border-radius: 5px;
+            padding: 12px;
+            overflow-x: auto;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            font-size: 0.85rem;
+        }
+
+        .search-result {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 5px;
+            background: white;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-result a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .search-result a:hover {
+            text-decoration: underline;
+        }
+
+        .search-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .search-snippet {
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .timestamp {
+            font-size: 0.8rem;
+            color: #777;
+        }
+
+        .conversation-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .fragment {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.7);
+            border-left: 4px solid transparent;
+        }
+
+        .fragment:last-child {
+            margin-bottom: 0;
+        }
+
+        .fragment.request {
+            border-left-color: #3498db;
+        }
+
+        .fragment.response {
+            border-left-color: #2ecc71;
+        }
+
+        .fragment.think {
+            border-left-color: #ffb300;
+        }
+
+        .fragment.search {
+            border-left-color: #4caf50;
+        }
+
+        .fragment-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .fragment-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 10px 0;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                max-height: 40vh;
+            }
+            
+            :root {
+                --sidebar-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-comments"></i> DeepSeek导出对话查看器</h1>
+        <p>上传JSON文件或手动粘贴JSON内容以查看DeepSeek对话内容。本网页由DeepSeek生成。最后更改时间2025.9.14-01:12。</p>
+    </header>
+
+    <div class="main-container">
+        <div class="content-area">
+            <div class="conversation-detail" id="conversationDetail">
+                <div style="text-align: center; padding: 40px; color: #777;">
+                    <i class="fas fa-comment-dots" style="font-size: 48px;"></i>
+                    <p>选择右侧的对话以查看详情</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="upload-section">
+                <div class="file-upload" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #3498db; margin-bottom: 8px;"></i>
+                    <p style="font-size: 0.9rem;">拖放JSON文件到此处或点击上传</p>
+                    <input type="file" id="fileInput" accept=".json" style="display: none;">
+                </div>
+
+                <div>
+                    <h3 style="font-size: 0.95rem; margin-bottom: 8px;">或手动粘贴JSON内容：</h3>
+                    <textarea class="json-input" id="jsonInput" placeholder="在此处粘贴JSON内容..."></textarea>
+                    <button id="parseButton">解析JSON</button>
+                </div>
+            </div>
+
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="搜索对话标题或内容...">
+                </div>
+                
+                <div class="filter-options">
+                    <label><input type="checkbox" id="filterRequest" checked> 请求</label>
+                    <label><input type="checkbox" id="filterResponse" checked> 响应</label>
+                    <label><input type="checkbox" id="filterThink" checked> 思考</label>
+                    <label><input type="checkbox" id="filterSearch" checked> 搜索</label>
+                </div>
+                
+                <div class="date-filter">
+                    <input type="date" id="startDate" placeholder="开始日期">
+                    <input type="date" id="endDate" placeholder="结束日期">
+                </div>
+            </div>
+
+            <div class="conversation-list" id="conversationList">
+                <div style="padding: 12px 15px; background: #f0f0f0; font-weight: bold; font-size: 0.9rem;">
+                    <i class="fas fa-list"></i> 对话列表
+                </div>
+                <div id="conversationsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const dropZone = document.getElementById('dropZone');
+            const jsonInput = document.getElementById('jsonInput');
+            const parseButton = document.getElementById('parseButton');
+            const conversationsContainer = document.getElementById('conversationsContainer');
+            const conversationDetail = document.getElementById('conversationDetail');
+            const searchInput = document.getElementById('searchInput');
+            const filterRequest = document.getElementById('filterRequest');
+            const filterResponse = document.getElementById('filterResponse');
+            const filterThink = document.getElementById('filterThink');
+            const filterSearch = document.getElementById('filterSearch');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+
+            let conversationsData = [];
+            let currentFilters = {
+                search: '',
+                types: {
+                    REQUEST: true,
+                    RESPONSE: true,
+                    THINK: true,
+                    SEARCH: true
+                },
+                dateRange: {
+                    start: null,
+                    end: null
+                }
+            };
+
+            // 配置marked和highlight.js
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    if (lang && hljs.getLanguage(lang)) {
+                        return hljs.highlight(code, { language: lang }).value;
+                    }
+                    return hljs.highlightAuto(code).value;
+                }
+            });
+
+            // 设置日期输入框的值为今天
+            const today = new Date();
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(today.getDate() - 7);
+            
+            startDate.valueAsDate = oneWeekAgo;
+            endDate.valueAsDate = today;
+
+            // 拖放上传功能
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#3498db';
+                dropZone.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = '#e0e0e0';
+                dropZone.style.backgroundColor = 'transparent';
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#e0e0e0';
+                dropZone.style.backgroundColor = 'transparent';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+
+            // 文件上传处理
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+
+            // JSON解析按钮
+            parseButton.addEventListener('click', () => {
+                const jsonText = jsonInput.value.trim();
+                if (jsonText) {
+                    try {
+                        const data = JSON.parse(jsonText);
+                        conversationsData = data;
+                        applyFilters();
+                    } catch (error) {
+                        alert('JSON解析错误: ' + error.message);
+                    }
+                } else {
+                    alert('请输入JSON内容');
+                }
+            });
+
+            // 搜索和筛选事件监听
+            searchInput.addEventListener('input', () => {
+                currentFilters.search = searchInput.value.toLowerCase();
+                applyFilters();
+            });
+
+            filterRequest.addEventListener('change', () => {
+                currentFilters.types.REQUEST = filterRequest.checked;
+                applyFilters();
+            });
+
+            filterResponse.addEventListener('change', () => {
+                currentFilters.types.RESPONSE = filterResponse.checked;
+                applyFilters();
+            });
+
+            filterThink.addEventListener('change', () => {
+                currentFilters.types.THINK = filterThink.checked;
+                applyFilters();
+            });
+
+            filterSearch.addEventListener('change', () => {
+                currentFilters.types.SEARCH = filterSearch.checked;
+                applyFilters();
+            });
+
+            startDate.addEventListener('change', () => {
+                currentFilters.dateRange.start = startDate.value ? new Date(startDate.value) : null;
+                applyFilters();
+            });
+
+            endDate.addEventListener('change', () => {
+                currentFilters.dateRange.end = endDate.value ? new Date(endDate.value) : null;
+                applyFilters();
+            });
+
+            // 处理文件上传
+            function handleFileUpload(file) {
+                if (file.type !== 'application/json') {
+                    alert('请上传JSON文件');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        jsonInput.value = JSON.stringify(data, null, 2);
+                        conversationsData = data;
+                        applyFilters();
+                    } catch (error) {
+                        alert('JSON解析错误: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // 应用筛选条件
+            function applyFilters() {
+                if (conversationsData.length === 0) return;
+                
+                const filteredConversations = conversationsData.filter(conversation => {
+                    // 日期筛选
+                    const insertedDate = new Date(conversation.inserted_at);
+                    if (currentFilters.dateRange.start && insertedDate < currentFilters.dateRange.start) {
+                        return false;
+                    }
+                    if (currentFilters.dateRange.end) {
+                        const endDate = new Date(currentFilters.dateRange.end);
+                        endDate.setHours(23, 59, 59, 999);
+                        if (insertedDate > endDate) {
+                            return false;
+                        }
+                    }
+                    
+                    // 搜索筛选
+                    if (currentFilters.search) {
+                        const titleMatch = conversation.title && conversation.title.toLowerCase().includes(currentFilters.search);
+                        
+                        let contentMatch = false;
+                        // 检查对话内容是否匹配
+                        if (conversation.mapping) {
+                            for (const key in conversation.mapping) {
+                                const node = conversation.mapping[key];
+                                if (node.message && node.message.fragments) {
+                                    for (const fragment of node.message.fragments) {
+                                        if (fragment.content && fragment.content.toLowerCase().includes(currentFilters.search)) {
+                                            contentMatch = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (contentMatch) break;
+                            }
+                        }
+                        
+                        if (!titleMatch && !contentMatch) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                });
+                
+                renderConversations(filteredConversations);
+            }
+
+            // 渲染对话列表
+            function renderConversations(data) {
+                conversationsContainer.innerHTML = '';
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    conversationsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #777;">没有找到匹配的对话</div>';
+                    return;
+                }
+                
+                data.forEach((conversation, index) => {
+                    const conversationItem = document.createElement('div');
+                    conversationItem.className = 'conversation-item';
+                    conversationItem.dataset.id = conversation.id;
+                    
+                    const startDate = new Date(conversation.inserted_at);
+                    const endDate = new Date(conversation.updated_at);
+                    
+                    // 格式化时间显示
+                    const timeFormat = isSameDay(startDate, endDate) ? 
+                        { 
+                            start: formatTime(startDate), 
+                            end: formatTime(endDate) 
+                        } : { 
+                            start: formatDateTime(startDate), 
+                            end: formatDateTime(endDate) 
+                        };
+                    
+                    conversationItem.innerHTML = `
+                        <div class="conversation-title">${conversation.title || '无标题对话'}</div>
+                        <div class="conversation-time">${timeFormat.start} - ${timeFormat.end}</div>
+                    `;
+                    
+                    conversationItem.addEventListener('click', () => {
+                        document.querySelectorAll('.conversation-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        conversationItem.classList.add('active');
+                        renderConversationDetail(conversation);
+                    });
+                    
+                    conversationsContainer.appendChild(conversationItem);
+                });
+            }
+
+            // 检查两个日期是否是同一天
+            function isSameDay(date1, date2) {
+                return date1.getFullYear() === date2.getFullYear() &&
+                       date1.getMonth() === date2.getMonth() &&
+                       date1.getDate() === date2.getDate();
+            }
+
+            // 格式化时间（仅时间）
+            function formatTime(date) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            // 格式化日期和时间
+            function formatDateTime(date) {
+                return date.toLocaleString([], { 
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+
+            // 渲染对话详情
+            function renderConversationDetail(conversation) {
+                conversationDetail.innerHTML = `
+                    <div class="conversation-header">
+                        <h2>${conversation.title || '无标题对话'}</h2>
+                        <p class="timestamp">
+                            <i class="far fa-clock"></i> 
+                            开始: ${formatDateTime(new Date(conversation.inserted_at))} | 
+                            结束: ${formatDateTime(new Date(conversation.updated_at))}
+                        </p>
+                    </div>
+                    <div class="conversation-tree" id="conversationTree"></div>
+                `;
+                
+                const treeContainer = document.getElementById('conversationTree');
+                buildConversationTree(conversation.mapping, treeContainer, 'root');
+                
+                // 增强代码块
+                enhanceCodeBlocks();
+            }
+
+            // 构建对话树
+            function buildConversationTree(mapping, container, nodeId, depth = 0) {
+                const node = mapping[nodeId];
+                if (!node || !node.children || node.children.length === 0) return;
+                
+                node.children.forEach(childId => {
+                    const childNode = mapping[childId];
+                    if (!childNode || !childNode.message) return;
+                    
+                    // 检查是否应该显示此消息类型
+                    const hasVisibleFragments = childNode.message.fragments && 
+                        childNode.message.fragments.some(fragment => 
+                            currentFilters.types[fragment.type]
+                        );
+                    
+                    if (!hasVisibleFragments) return;
+                    
+                    const messageNode = document.createElement('div');
+                    messageNode.className = 'tree-node';
+                    
+                    const model = childNode.message.model;
+                    const insertedAt = new Date(childNode.message.inserted_at);
+                    
+                    // 处理多个fragments
+                    let fragmentsHtml = '';
+                    if (childNode.message.fragments && childNode.message.fragments.length > 0) {
+                        let firstFragment = true;
+                        
+                        childNode.message.fragments.forEach(fragment => {
+                            // 跳过隐藏的消息类型
+                            if (!currentFilters.types[fragment.type]) return;
+                            
+                            if (!firstFragment) {
+                                fragmentsHtml += '<div class="fragment-divider"></div>';
+                            }
+                            
+                            fragmentsHtml += `
+                                <div class="fragment ${fragment.type.toLowerCase()}">
+                                    <div class="fragment-header">
+                                        <span>${fragment.type}</span>
+                                        <span class="timestamp">${formatDateTime(insertedAt)}</span>
+                                    </div>
+                                    <div class="fragment-content">
+                                        ${renderFragmentContent(fragment)}
+                                    </div>
+                                </div>
+                            `;
+                            
+                            firstFragment = false;
+                        });
+                    }
+                    
+                    messageNode.innerHTML = `
+                        <div class="message">
+                            <div class="message-header">
+                                <div>
+                                    ${getMessageTypeText(childNode.message.fragments)}
+                                    <span class="model-tag ${model === 'deepseek-reasoner' ? 'reasoner' : 'chat'}">
+                                        ${model}
+                                    </span>
+                                </div>
+                                <div class="timestamp">
+                                    ${formatDateTime(insertedAt)}
+                                </div>
+                            </div>
+                            <div class="message-content">
+                                ${fragmentsHtml}
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(messageNode);
+                    
+                    // 递归处理子节点
+                    if (childNode.children && childNode.children.length > 0) {
+                        const childContainer = document.createElement('div');
+                        childContainer.className = 'conversation-tree';
+                        messageNode.appendChild(childContainer);
+                        buildConversationTree(mapping, childContainer, childId, depth + 1);
+                    }
+                });
+            }
+
+            // 获取消息类型文本
+            function getMessageTypeText(fragments) {
+                if (!fragments || fragments.length === 0) return '未知类型';
+                
+                const types = fragments.map(f => f.type);
+                return types.join(' + ');
+            }
+
+            // 渲染片段内容
+            function renderFragmentContent(fragment) {
+                if (!fragment) return '<em>无内容</em>';
+                
+                switch (fragment.type) {
+                    case 'REQUEST':
+                    case 'RESPONSE':
+                    case 'THINK':
+                        return marked.parse(fragment.content || '');
+                    
+                    case 'SEARCH':
+                        if (fragment.results && Array.isArray(fragment.results)) {
+                            return fragment.results.map(result => `
+                                <div class="search-result">
+                                    <div class="search-title">
+                                        <a href="${result.url}" target="_blank">${result.title}</a>
+                                    </div>
+                                    <div class="search-snippet">${result.snippet}</div>
+                                    <div class="timestamp">
+                                        ${result.published_at ? new Date(result.published_at * 1000).toLocaleDateString() : '未知日期'} | 
+                                        ${result.site_name || '未知来源'}
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            return `<pre>${JSON.stringify(fragment, null, 2)}</pre>`;
+                        }
+                        break;
+                    
+                    default:
+                        if (fragment.content) {
+                            return `<pre>${fragment.content}</pre>`;
+                        } else {
+                            return `<pre>${JSON.stringify(fragment, null, 2)}</pre>`;
+                        }
+                }
+            }
+
+            // 添加代码块操作功能
+            function enhanceCodeBlocks() {
+                document.querySelectorAll('pre code').forEach(block => {
+                    const pre = block.parentElement;
+                    if (!pre.parentElement.classList.contains('code-block')) {
+                        const codeBlock = document.createElement('div');
+                        codeBlock.className = 'code-block';
+                        pre.parentElement.insertBefore(codeBlock, pre);
+                        codeBlock.appendChild(pre);
+                        
+                        const codeActions = document.createElement('div');
+                        codeActions.className = 'code-actions';
+                        codeActions.innerHTML = `
+                            <button class="code-btn copy-code">复制</button>
+                            <button class="code-btn download-code">下载</button>
+                        `;
+                        codeBlock.appendChild(codeActions);
+                    }
+                });
+
+                // 复制代码功能
+                document.querySelectorAll('.copy-code').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const codeBlock = e.target.closest('.code-block');
+                        const code = codeBlock.querySelector('code').innerText;
+                        navigator.clipboard.writeText(code).then(() => {
+                            const originalText = e.target.textContent;
+                            e.target.textContent = '已复制!';
+                            setTimeout(() => {
+                                e.target.textContent = originalText;
+                            }, 2000);
+                        });
+                    });
+                });
+                
+                // 下载代码功能
+                document.querySelectorAll('.download-code').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const codeBlock = e.target.closest('.code-block');
+                        const code = codeBlock.querySelector('code').innerText;
+                        const lang = codeBlock.querySelector('code').className.replace('language-', '') || 'txt';
+                        const blob = new Blob([code], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `code.${lang}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                });
+            }
+
+            // 初始增强代码块
+            enhanceCodeBlocks();
+        });
+    </script>
+</body>
+</html>
