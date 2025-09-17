@@ -71,26 +71,125 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-main {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-width: 0;
+            flex: 1;
         }
 
         .header-controls {
             display: flex;
             gap: 8px;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
-        .theme-toggle, .print-btn, .save-btn {
-            background: var(--primary-color);
-            color: white;
+        /* 宽屏布局 - 单行横向排列 */
+        @media (min-width: 1025px) {
+            .header-controls {
+                flex-direction: row;
+                flex-wrap: nowrap;
+            }
+            .header-controls button {
+                width: auto;
+                min-width: 100px;
+            }
+        }
+
+        /* 中等屏幕布局 - 两行排列 */
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .header-controls {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+            .header-controls button {
+                flex: 0 0 calc(25% - 8px);
+                min-width: 120px;
+            }
+        }
+
+        /* 窄屏布局 - 三列排列 */
+        @media (max-width: 600px) {
+            .header-controls {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: flex-start; /* 修改为左对齐，尽量一行，空间不足自动换行 */
+                gap: 8px;
+            }
+            .header-controls button {
+                flex: 0 0 auto;
+                width: 40px;
+                min-width: 40px;
+                max-width: 40px;
+                height: 40px;
+                min-height: 40px;
+                max-height: 40px;
+                font-size: 1.2rem;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+            }
+            /* 隐藏按钮文字，仅显示图标 */
+            .header-controls button > span {
+                display: none;
+            }
+            .header-controls button i {
+                margin-right: 0 !important;
+            }
+        }
+
+        /* 固定关闭按钮宽度 */
+        .close-modal {
+            background: none;
             border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
+            font-size: 1.5rem;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.85rem;
-            white-space: nowrap;
+            color: var(--text-color);
+            width: 40px;
+            min-width: 40px;
+            max-width: 40px;
+            text-align: center;
+            padding: 0;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         h1 {
@@ -113,6 +212,13 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            overflow: hidden;
+            border-right: none;
         }
 
         .resize-handle {
@@ -122,6 +228,12 @@
             flex-shrink: 0;
             position: relative;
             z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        .resize-handle.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .resize-handle:hover {
@@ -131,6 +243,69 @@
         .upload-section {
             padding: 15px;
             border-bottom: 1px solid var(--border-color);
+            transition: max-height 0.3s, opacity 0.3s;
+            max-height: 800px;
+            opacity: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .upload-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .upload-modal.active {
+            display: block;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+            width: 40px;
+            min-width: 40px;
+            max-width: 40px;
+            text-align: center;
+            padding: 0;
         }
 
         .search-filters {
@@ -185,6 +360,21 @@
             color: var(--text-color);
         }
 
+        .sort-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .sort-options select {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
         .conversation-list {
             flex: 1;
             display: flex;
@@ -200,6 +390,9 @@
             position: sticky;
             top: 0;
             z-index: 5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .conversations-container {
@@ -211,6 +404,12 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            transition: width 0.3s ease;
+        }
+
+        .content-area.collapsed {
+            width: 0;
             overflow: hidden;
         }
 
@@ -258,9 +457,13 @@
             cursor: pointer;
             font-weight: bold;
             transition: background-color 0.3s;
-            margin-top: 10px;
+            margin-top: 0;
             width: 100%;
             font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
         button:hover {
@@ -375,12 +578,23 @@
         .code-block {
             position: relative;
             margin: 10px 0;
+            background: #2d2d2d;
+            border-radius: 5px;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 5px 10px;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            font-size: 0.8rem;
         }
 
         .code-actions {
-            position: absolute;
-            top: 5px;
-            right: 5px;
             display: flex;
             gap: 5px;
         }
@@ -393,6 +607,7 @@
             font-size: 0.75rem;
             cursor: pointer;
             transition: background 0.2s;
+            color: #333;
         }
 
         .code-btn:hover {
@@ -400,17 +615,18 @@
         }
 
         pre {
-            border-radius: 5px;
+            border-radius: 0 0 5px 5px;
             padding: 12px;
             overflow-x: auto;
             background: #2d2d2d;
             color: #f8f8f2;
             font-size: 0.85rem;
             border: 1px solid #555;
+            margin: 0;
         }
 
         [data-theme="dark"] pre {
-            border: 1px solid #fff;
+            border: 1px solid #666;
         }
 
         .search-result {
@@ -510,29 +726,49 @@
             background: var(--card-bg);
             border-radius: 6px;
             border: 1px solid var(--border-color);
+            width: 200px;
+            min-width: 50px;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+        }
+
+        .branch-nav-btn {
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 2px;
+            min-width: 30px;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+        }
+
+        .branch-nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
 
         .branch-input {
-            width: 50px;
+            width: 40px;
+            height: 30px;
             text-align: center;
-            padding: 5px;
+            padding: 0;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             margin: 0 5px;
             background: var(--card-bg);
             color: var(--text-color);
-        }
-
-        .branch-total {
-            margin: 0 5px;
-            font-size: 0.9rem;
-        }
-
-        .highlight {
-            background-color: #ffeb3b;
-            padding: 0 2px;
-            border-radius: 2px;
-            color: #000;
+            font-size: 15px;
+            box-sizing: border-box;
         }
 
         /* Markdown 表格样式 */
@@ -563,37 +799,80 @@
             margin: 5px 0;
         }
 
+        .highlight {
+            background-color: yellow;
+            color: black;
+            padding: 2px 0;
+        }
+
         /* 响应式设计 */
-        @media (max-width: 992px) {
+        @media (orientation: portrait) {
             .main-container {
                 flex-direction: column;
             }
-            
             .sidebar {
-                width: 100%;
+                width: 100% !important;
                 border-right: none;
-                border-bottom: 1px solid var(--border-color);
-                max-height: 40vh;
+                max-height: 50vh;
+                overflow-y: auto;
+                transition: none;
             }
-            
             .resize-handle {
                 display: none;
             }
-            
-            .header-controls {
-                flex-wrap: wrap;
-                justify-content: flex-end;
+            .conversation-detail {
+                padding: 15px;
             }
-            
-            .theme-toggle, .print-btn, .save-btn {
-                font-size: 0.75rem;
-                padding: 4px 8px;
+            .conversation-list {
+                display: none;
+            }
+            .conversation-list.expanded {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                max-height: 40vh;
+                min-height: 100px;
+                border-bottom: 1px solid var(--border-color);
+                background: var(--card-bg);
+                z-index: 2;
+            }
+            /* 保证搜索栏始终显示 */
+            .search-filters {
+                display: block !important;
+                position: relative;
+                z-index: 21;
+            }
+            /* 新增：正文折叠时对话列表扩展覆盖正文区域，但不影响搜索栏 */
+            .conversation-list.expanded.cover-content {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                height: 100%;
+                max-height: none;
+                min-height: 0;
+                background: var(--card-bg);
+                z-index: 20;
+                box-shadow: 0 0 10px rgba(0,0,0,0.08);
+                /* 保证搜索栏在上方，列表内容下移 */
+                margin-top: 60px;
+            }
+            /* 纵向布局下显示正文切换按钮 */
+            .toggle-content-btn {
+                display: block !important;
+            }
+        }
+        /* 横向布局下隐藏正文切换按钮 */
+        @media (orientation: landscape) {
+            .toggle-content-btn {
+                display: none !important;
             }
         }
 
-        /* 打印样式 */
         @media print {
-            header, .sidebar, .resize-handle, .header-controls {
+            header, .sidebar, .resize-handle, .header-controls,
+            .code-actions, .branch-navigation {
                 display: none !important;
             }
             
@@ -621,10 +900,6 @@
                 page-break-inside: avoid;
             }
             
-            .branch-navigation {
-                display: none;
-            }
-            
             body, html {
                 height: auto;
                 overflow: visible;
@@ -640,73 +915,119 @@
             a {
                 color: #0000ee !important;
             }
+
+            pre {
+                background: #f5f5f5 !important;
+                color: #333 !important;
+                border: 1px solid #ddd !important;
+                page-break-inside: avoid;
+            }
+
+            .code-header {
+                background: #eee !important;
+                color: #333 !important;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div>正在处理数据...</div>
+    </div>
+
+    <!-- 上传模态窗口 -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="upload-modal" id="uploadModal">
+        <div class="modal-header">
+            <h3>上传或输入JSON内容</h3>
+            <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <div class="upload-section">
+            <div class="file-upload" id="dropZone">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #3498db; margin-bottom: 8px;"></i>
+                <p style="font-size: 0.9rem;">拖放JSON文件到此处或点击上传</p>
+                <input type="file" id="fileInput" accept=".json" style="display: none;">
+            </div>
+
+            <div>
+                <h3 style="font-size: 0.95rem; margin-bottom: 8px;">或手动输入JSON内容：</h3>
+                <textarea class="json-input" id="jsonInput" placeholder="在此处粘贴JSON内容..."></textarea>
+                <button id="parseButton">解析JSON</button>
+            </div>
+        </div>
+    </div>
+
     <header>
-        <div>
-            <h1><i class="fas fa-comments"></i> DeepSeek导出对话查看器</h1>
-            <p>上传JSON文件或手动粘贴JSON内容以查看DeepSeek对话内容。本网页由DeepSeek生成。最后更改时间2025.9.16-1:30。（UTC+8）</p>
-            <p>打印功能目前尚不完善，请切换至浅色模式后再行打印。|代码块下载功能目前尚不完善，请下载后自行修正文件后缀名。|搜索定位功能目前尚不完善，请使用搜索功能进行初筛，然后选中对话，自行使用浏览器搜索功能进行定位（Control+F）。|纵向排版（移动端）目前尚未适配，敬请谅解。</p>
+        <div class="header-main">
+            <h1><i class="fas fa-comments"></i>DeepSeek导出对话查看器</h1>
+            <p>上传JSON文件或手动输入JSON内容以查看DeepSeek对话</p>
         </div>
         <div class="header-controls">
-            <button class="theme-toggle" id="themeToggle">
-                <i class="fas fa-moon"></i> 深色模式
+            <button class="upload-modal-btn" id="uploadModalBtn" aria-label="上传JSON">
+                <i class="fas fa-upload"></i> <span>上传JSON</span>
             </button>
-            <button class="save-btn" id="saveBtn">
-                <i class="fas fa-download"></i> 保存
+            <button class="toggle-sidebar-btn" id="toggleSidebarBtn" aria-label="切换边栏">
+                <i class="fas fa-list"></i> <span>显示边栏</span>
             </button>
-            <button class="print-btn" id="printBtn">
-                <i class="fas fa-print"></i> 打印
+            <button class="toggle-content-btn" id="toggleContentBtn" aria-label="切换内容区域">
+                <i class="fas fa-file-alt"></i> <span>显示内容</span>
+            </button>
+            <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+                <i class="fas fa-moon"></i> <span>深色模式</span>
+            </button>
+            <button class="save-btn" id="saveBtn" aria-label="保存网页">
+                <i class="fas fa-download"></i> <span>保存</span>
+            </button>
+            <button class="print-btn" id="printBtn" aria-label="打印内容">
+                <i class="fas fa-print"></i> <span>打印</span>
+            </button>
+            <button class="reset-btn" id="resetBtn" aria-label="重置应用">
+                <i class="fas fa-redo"></i> <span>重置</span>
             </button>
         </div>
     </header>
 
     <div class="main-container">
         <div class="sidebar" id="sidebar">
-            <div class="upload-section">
-                <div class="file-upload" id="dropZone">
-                    <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #3498db; margin-bottom: 8px;"></i>
-                    <p style="font-size: 0.9rem;">拖放JSON文件到此处或点击上传</p>
-                    <input type="file" id="fileInput" accept=".json" style="display: none;">
-                </div>
-
-                <div>
-                    <h3 style="font-size: 0.95rem; margin-bottom: 8px;">或手动输入JSON内容：</h3>
-                    <textarea class="json-input" id="jsonInput" placeholder="在此处粘贴JSON内容..."></textarea>
-                    <button id="parseButton">解析JSON</button>
-                </div>
-            </div>
-
             <div class="search-filters">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="搜索对话标题或内容...">
+                    <input type="text" id="searchInput" placeholder="搜索对话标题或内容..." aria-label="搜索对话">
                 </div>
                 
                 <div class="search-stats" id="searchStats">
-                    本对话中未找到匹配项
+                    找到 0 个匹配项
                 </div>
                 
                 <div class="date-filter">
-                    <input type="date" id="startDate" placeholder="开始日期">
-                    <input type="date" id="endDate" placeholder="结束日期">
+                    <input type="date" id="filterStartDate" placeholder="开始日期" aria-label="开始日期">
+                    <input type="date" id="filterEndDate" placeholder="结束日期" aria-label="结束日期">
+                </div>
+
+                <div class="sort-options">
+                    <select id="sortSelect" aria-label="排序方式">
+                        <option value="newest">由新到旧</option>
+                        <option value="oldest">由旧到新</option>
+                        <option value="title">按标题排序</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="conversation-list">
-                <div class="conversation-list-header">
-                    <i class="fas fa-list"></i> 对话列表
+            <div class="conversation-list" id="conversationList">
+                <div class="conversations-container" id="conversationsContainer">
+                    <div class="conversation-list-header">
+                        <span><i class="fas fa-list"></i> 对话列表</span>
+                        <span id="conversationCount">0 个对话</span>
+                    </div>
                 </div>
-                <div class="conversations-container" id="conversationsContainer"></div>
             </div>
         </div>
 
         <div class="resize-handle" id="resizeHandle"></div>
 
-        <div class="content-area">
-            <div class="conversation-detail" id="conversationDetail">
+        <div class="content-area" id="contentArea">
+            <div class="conversation-detail" id="conversationDetailContainer">
                 <div style="text-align: center; padding: 40px; color: #777;">
                     <i class="fas fa-comment-dots" style="font-size: 48px;"></i>
                     <p>选择左侧的对话以查看详情</p>
@@ -716,6 +1037,112 @@
     </div>
 
     <script>
+        // 工具函数
+        const utils = {
+            // 日期格式化
+            formatDateTime: function(date) {
+                return date.toLocaleString([], { 
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            },
+            
+            // 高亮文本
+            highlightText: function(text, searchTerm) {
+                if (!searchTerm) return text;
+                
+                // 转义正则特殊字符
+                const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${escapedTerm})`, 'gi');
+                return text.replace(regex, '<span class="highlight">$1</span>');
+            },
+            
+            // 防抖函数
+            debounce: function(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            },
+            
+            // 获取语言类型
+            getLanguageFromClass: function(className) {
+                const match = className.match(/language-(\w+)/);
+                return match ? match[1] : 'txt';
+            },
+            
+            // 获取文件扩展名映射
+            getFileExtension: function(language) {
+                const extensionMap = {
+                    'javascript': 'js',
+                    'python': 'py',
+                    'csharp': 'cs',
+                    'ruby': 'rb',
+                    'rust': 'rs',
+                    'kotlin': 'kt',
+                    'typescript': 'ts',
+                    'htm': 'html',
+                    'bash': 'sh',
+                    'shell': 'sh',
+                    'markdown': 'md',
+                    'text': 'txt',
+                    'batch': 'bat',
+                    'powershell': 'ps1',
+                    'objective': 'm',
+                    'perl': 'pl',
+                    'haskell': 'hs',
+                    'erlang': 'erl',
+                    'elixir': 'ex',
+                    'yml': 'yaml',
+                    'makefile': 'mk'
+                };
+                
+                return extensionMap[language] || language;
+            },
+            
+            // 检测代码语言
+            detectCodeLanguage: function(code) {
+                // 常见代码语言检测
+                if (code.includes('function') && (code.includes('{') && code.includes('}'))) {
+                    return 'javascript';
+                }
+                if (code.includes('def ') && code.includes(':')) {
+                    return 'python';
+                }
+                if (code.includes('<?php') || code.includes('$')) {
+                    return 'php';
+                }
+                if (code.includes('import ') && (code.includes('java.') || code.includes('class '))) {
+                    return 'java';
+                }
+                if (code.includes('#include') || code.includes('using namespace')) {
+                    return 'cpp';
+                }
+                if (code.includes('<html') || code.includes('<div') || code.includes('<span')) {
+                    return 'html';
+                }
+                if (code.includes('SELECT') || code.includes('FROM') || code.includes('WHERE')) {
+                    return 'sql';
+                }
+                if (code.includes('package ') || code.includes('import ') || code.includes('func ')) {
+                    return 'go';
+                }
+                if (code.includes('fn ') || code.includes('let ') || code.includes('mut ')) {
+                    return 'rust';
+                }
+                
+                return 'txt';
+            }
+        };
+
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('fileInput');
@@ -723,31 +1150,51 @@
             const jsonInput = document.getElementById('jsonInput');
             const parseButton = document.getElementById('parseButton');
             const conversationsContainer = document.getElementById('conversationsContainer');
-            const conversationDetail = document.getElementById('conversationDetail');
+            const conversationDetailContainer = document.getElementById('conversationDetailContainer');
             const searchInput = document.getElementById('searchInput');
-            const startDate = document.getElementById('startDate');
-            const endDate = document.getElementById('endDate');
+            const filterStartDate = document.getElementById('filterStartDate');
+            const filterEndDate = document.getElementById('filterEndDate');
+            const sortSelect = document.getElementById('sortSelect');
             const resizeHandle = document.getElementById('resizeHandle');
             const themeToggle = document.getElementById('themeToggle');
             const saveBtn = document.getElementById('saveBtn');
             const printBtn = document.getElementById('printBtn');
+            const resetBtn = document.getElementById('resetBtn');
             const searchStats = document.getElementById('searchStats');
+            const conversationCount = document.getElementById('conversationCount');
+            const loading = document.getElementById('loading');
+            const sidebar = document.getElementById('sidebar');
+            const contentArea = document.getElementById('contentArea');
+            const uploadModal = document.getElementById('uploadModal');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const closeModal = document.getElementById('closeModal');
+            const uploadModalBtn = document.getElementById('uploadModalBtn');
+            const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+            const toggleContentBtn = document.getElementById('toggleContentBtn');
 
             let conversationsData = [];
-            let currentFilters = {
+            let conversationFilters = {
                 search: '',
                 dateRange: {
                     start: null,
                     end: null
-                }
+                },
+                sortBy: 'newest'
             };
 
-            let searchResults = [];
             let currentConversation = null;
+            let eventListeners = [];
+            let branchNavigationIndex = {}; // 存储当前分支状态
+            let isProcessing = false; // 标记是否正在处理数据
 
             // 配置marked和highlight.js
             marked.setOptions({
                 highlight: function(code, lang) {
+                    if (!lang) {
+                        // 自动检测语言
+                        lang = utils.detectCodeLanguage(code);
+                    }
+                    
                     if (lang && hljs.getLanguage(lang)) {
                         return hljs.highlight(code, { language: lang }).value;
                     }
@@ -755,49 +1202,197 @@
                 }
             });
 
-            // 设置日期输入框的值为今天
+            // 设置开始日期的默认日期，设置结束日期输入框的值为今天
             const today = new Date();
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(today.getDate() - 7);
+            const unixEpoch = new Date(0);
             
-            startDate.valueAsDate = oneWeekAgo;
-            endDate.valueAsDate = today;
+            filterStartDate.valueAsDate = unixEpoch;
+            filterEndDate.valueAsDate = today;
 
-            // 初始化主题
+            // 显示加载指示器
+            function showLoading() {
+                isProcessing = true;
+                loading.style.display = 'block';
+            }
+
+            // 隐藏加载指示器
+            function hideLoading() {
+                isProcessing = false;
+                loading.style.display = 'none';
+            }
+
+            // 初始化主题（仅根据系统设置）
             function initTheme() {
-                const savedTheme = localStorage.getItem('theme');
                 const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                
-                if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                const themeIcon = themeToggle.querySelector('i');
+                const themeText = themeToggle.querySelector('span');
+                if (systemPrefersDark) {
                     document.documentElement.setAttribute('data-theme', 'dark');
-                    themeToggle.innerHTML = '<i class="fas fa-sun"></i> 浅色模式';
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = '浅色模式';
                 } else {
                     document.documentElement.setAttribute('data-theme', 'light');
-                    themeToggle.innerHTML = '<i class="fas fa-moon"></i> 深色模式';
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = '深色模式';
                 }
             }
 
             // 切换主题
             themeToggle.addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
+                const themeIcon = themeToggle.querySelector('i');
+                const themeText = themeToggle.querySelector('span');
                 if (currentTheme === 'dark') {
                     document.documentElement.setAttribute('data-theme', 'light');
-                    localStorage.setItem('theme', 'light');
-                    themeToggle.innerHTML = '<i class="fas fa-moon"></i> 深色模式';
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = '深色模式';
                 } else {
                     document.documentElement.setAttribute('data-theme', 'dark');
-                    localStorage.setItem('theme', 'dark');
-                    themeToggle.innerHTML = '<i class="fas fa-sun"></i> 浅色模式';
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = '浅色模式';
                 }
             });
+
+            // 打开上传模态窗口
+            function openUploadModal() {
+                uploadModal.classList.add('active');
+                modalOverlay.classList.add('active');
+            }
+
+            // 关闭上传模态窗口
+            function closeUploadModal() {
+                uploadModal.classList.remove('active');
+                modalOverlay.classList.remove('active');
+            }
+
+            // 切换边栏显示/隐藏
+            function toggleSidebar() {
+                // 在纵向布局下，边栏切换逻辑不同
+                if (isPortraitMobile()) {
+                    // 纵向布局下，切换对话列表的显示
+                    const conversationList = document.getElementById('conversationList');
+                    conversationList.classList.toggle('expanded');
+                    
+                    if (conversationList.classList.contains('expanded')) {
+                        toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
+                    } else {
+                        toggleSidebarBtn.innerHTML = '<i class="fas fa-list"></i> <span>显示边栏</span>';
+                    }
+                } else {
+                    // 横向布局下的正常逻辑
+                    sidebar.classList.toggle('collapsed');
+                    resizeHandle.classList.toggle('hidden');
+                    
+                    if (sidebar.classList.contains('collapsed')) {
+                        toggleSidebarBtn.innerHTML = '<i class="fas fa-list"></i> <span>显示边栏</span>';
+                    } else {
+                        toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
+                    }
+                }
+            }
+
+            // 切换内容区域显示/隐藏
+            function toggleContentArea() {
+                contentArea.classList.toggle('collapsed');
+                const conversationList = document.getElementById('conversationList');
+                const searchFilters = document.querySelector('.search-filters');
+                if (isPortraitMobile()) {
+                    if (contentArea.classList.contains('collapsed')) {
+                        // 折叠正文时扩展对话列表覆盖正文区域
+                        if (conversationList.classList.contains('expanded')) {
+                            conversationList.classList.add('cover-content');
+                        }
+                        // 保证搜索栏显示
+                        searchFilters.style.display = 'block';
+                        toggleContentBtn.innerHTML = '<i class="fas fa-file-alt"></i> <span>显示内容</span>';
+                    } else {
+                        // 展开正文时恢复对话列表原状
+                        conversationList.classList.remove('cover-content');
+                        searchFilters.style.display = 'block';
+                        toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
+                    }
+                } else {
+                    if (contentArea.classList.contains('collapsed')) {
+                        toggleContentBtn.innerHTML = '<i class="fas fa-file-alt"></i> <span>显示内容</span>';
+                    } else {
+                        toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
+                    }
+                }
+            }
+
+            // 自动折叠上传区域
+            window.autoCollapseUploadSection = function() {
+                closeUploadModal();
+                // 加载数据后自动展开内容区域
+                contentArea.classList.remove('collapsed');
+                // 纵向布局下加载完成后展开对话列表
+                if (isPortraitMobile()) {
+                    const conversationList = document.getElementById('conversationList');
+                    conversationList.classList.add('expanded');
+                    toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
+                }
+                toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
+                
+                // 纵向布局下加载完成后展开对话列表
+                if (isPortraitMobile()) {
+                    const conversationList = document.getElementById('conversationList');
+                    conversationList.classList.add('expanded');
+                    toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
+                }
+            };
+
+            // 长宽比判断
+            function isPortraitMobile() {
+                return window.innerHeight > window.innerWidth;
+            }
+
+            // 页面加载和窗口变化时自动调整 sidebar
+            function adjustSidebarForMobile() {
+                if (isPortraitMobile()) {
+                    sidebar.style.overflowY = 'auto';
+                    sidebar.style.width = '100%';
+                    sidebar.style.display = '';
+                    document.querySelector('.main-container').style.flexDirection = 'column';
+                    document.querySelector('.resize-handle').style.display = 'none';
+                    toggleSidebarBtn.style.display = 'block';
+                    toggleContentBtn.style.display = 'block';
+
+                    const conversationList = document.getElementById('conversationList');
+                    const searchFilters = document.querySelector('.search-filters');
+                    if (contentArea.classList.contains('collapsed')) {
+                        if (conversationList.classList.contains('expanded')) {
+                            conversationList.classList.add('cover-content');
+                        }
+                        // 保证搜索栏显示
+                        searchFilters.style.display = 'block';
+                    } else {
+                        conversationList.classList.remove('cover-content');
+                        searchFilters.style.display = 'block';
+                    }
+                    contentArea.classList.remove('collapsed');
+                    toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
+                } else {
+                    sidebar.style.overflowY = '';
+                    sidebar.style.width = '';
+                    sidebar.style.display = '';
+                    document.querySelector('.main-container').style.flexDirection = '';
+                    document.querySelector('.resize-handle').style.display = '';
+                    toggleContentBtn.style.display = 'none';
+                    document.getElementById('conversationList').classList.remove('cover-content');
+                    document.querySelector('.search-filters').style.display = '';
+                    contentArea.classList.remove('collapsed');
+                }
+            }
+            window.addEventListener('resize', adjustSidebarForMobile);
+            adjustSidebarForMobile();
 
             // 保存网页
             saveBtn.addEventListener('click', () => {
                 // 保存当前对话内容
-                const currentDetail = conversationDetail.innerHTML;
+                const currentDetail = conversationDetailContainer.innerHTML;
                 
                 // 清空对话内容
-                conversationDetail.innerHTML = '<div style="text-align: center; padding: 40px; color: #777;"><i class="fas fa-comment-dots" style="font-size: 48px;"></i><p>选择左侧的对话以查看详情</p></div>';
+                conversationDetailContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #777;"><i class="fas fa-comment-dots" style="font-size: 48px;"></i><p>选择左侧的对话以查看详情</p></div>';
                 
                 // 创建blob并下载
                 setTimeout(() => {
@@ -805,14 +1400,14 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'deepseek-conversations.html';
+                    a.download = 'Deepseek-Chat-Reader.html';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                     
                     // 恢复对话内容
-                    conversationDetail.innerHTML = currentDetail;
+                    conversationDetailContainer.innerHTML = currentDetail;
                 }, 100);
             });
 
@@ -821,91 +1416,192 @@
                 window.print();
             });
 
-            // 拖放上传功能
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.style.borderColor = '#3498db';
-                dropZone.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
-            });
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.style.borderColor = '#e0e0e0';
-                dropZone.style.backgroundColor = 'transparent';
-            });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.style.borderColor = '#e0e0e0';
-                dropZone.style.backgroundColor = 'transparent';
-                
-                if (e.dataTransfer.files.length) {
-                    fileInput.files = e.dataTransfer.files;
-                    handleFileUpload(e.dataTransfer.files[0]);
-                }
-            });
+            // 清除事件监听器
+            function clearEventListeners() {
+                eventListeners.forEach(({element, type, listener}) => {
+                    element.removeEventListener(type, listener);
+                });
+                eventListeners = [];
+            }
 
-            // 文件上传处理
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) {
-                    handleFileUpload(e.target.files[0]);
-                }
-            });
+            // 添加事件监听器（便于管理）
+            function addEventListener(element, type, listener) {
+                element.addEventListener(type, listener);
+                eventListeners.push({element, type, listener});
+            }
 
-            // JSON解析按钮
-            parseButton.addEventListener('click', () => {
-                const jsonText = jsonInput.value.trim();
-                if (jsonText) {
-                    try {
-                        const data = JSON.parse(jsonText);
-                        conversationsData = data;
-                        applyFilters();
-                    } catch (error) {
-                        alert('JSON解析错误: ' + error.message);
+            // 重置应用
+            resetBtn.addEventListener('click', () => {
+                if (confirm('确定要重置应用吗？所有数据将会丢失。')) {
+                    // 清除所有数据
+                    conversationsData = [];
+                    conversationFilters = {
+                        search: '',
+                        dateRange: {
+                            start: null,
+                            end: null
+                        },
+                        sortBy: 'newest'
+                    };
+                    
+                    // 重置UI
+                    jsonInput.value = '';
+                    searchInput.value = '';
+                    filterStartDate.valueAsDate = unixEpoch;
+                    filterEndDate.valueAsDate = today;
+                    sortSelect.value = 'newest';
+                    fileInput.value = '';
+                    
+                    // 清空容器
+                    conversationsContainer.innerHTML = '';
+                    conversationDetailContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #777;"><i class="fas fa-comment-dots" style="font-size: 48px;"></i><p>选择左侧的对话以查看详情</p></div>';
+                    
+                    // 更新统计
+                    searchStats.textContent = '找到 0 个匹配项';
+                    conversationCount.textContent = '0 个对话';
+                    
+                    // 清除事件监听器
+                    clearEventListeners();
+                    
+                    // 隐藏加载提示
+                    hideLoading();
+                    
+                    // 重新绑定事件
+                    bindEvents();
+                    
+                    // 打开上传模态窗口
+                    openUploadModal();
+                    
+                    // 折叠内容区域
+                    contentArea.classList.add('collapsed');
+                    toggleContentBtn.innerHTML = '<i class="fas fa-file-alt"></i> <span>显示内容</span>';
+                    // 重置后展开对话列表（纵向布局）
+                    if (isPortraitMobile()) {
+                        const conversationList = document.getElementById('conversationList');
+                        conversationList.classList.add('expanded');
+                        toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
                     }
-                } else {
-                    alert('请输入JSON内容');
+                    
+                    // 重置后展开对话列表（纵向布局）
+                    if (isPortraitMobile()) {
+                        const conversationList = document.getElementById('conversationList');
+                        conversationList.classList.add('expanded');
+                        toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
+                    }
                 }
             });
 
-            // 搜索和筛选事件监听
-            searchInput.addEventListener('input', () => {
-                currentFilters.search = searchInput.value.toLowerCase();
-                applyFilters();
-                updateSearchStats();
-            });
-
-            startDate.addEventListener('change', () => {
-                currentFilters.dateRange.start = startDate.value ? new Date(startDate.value) : null;
-                applyFilters();
-            });
-
-            endDate.addEventListener('change', () => {
-                currentFilters.dateRange.end = endDate.value ? new Date(endDate.value) : null;
-                applyFilters();
-            });
-
-            // 侧边栏宽度调整
-            let isResizing = false;
-            resizeHandle.addEventListener('mousedown', (e) => {
-                isResizing = true;
-                document.body.style.cursor = 'col-resize';
-                e.preventDefault();
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isResizing) return;
+            // 绑定事件
+            function bindEvents() {
+                // 模态窗口事件
+                addEventListener(uploadModalBtn, 'click', openUploadModal);
+                addEventListener(closeModal, 'click', closeUploadModal);
+                addEventListener(modalOverlay, 'click', closeUploadModal);
                 
-                const containerRect = document.querySelector('.main-container').getBoundingClientRect();
-                const newWidth = e.clientX - containerRect.left;
-                
-                if (newWidth > 200 && newWidth < containerRect.width * 0.7) {
-                    document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
-                }
-            });
+                // 边栏和内容区域切换
+                addEventListener(toggleSidebarBtn, 'click', toggleSidebar);
+                addEventListener(toggleContentBtn, 'click', toggleContentArea);
 
-            document.addEventListener('mouseup', () => {
-                isResizing = false;
-                document.body.style.cursor = '';
-            });
+                // 拖放上传功能
+                addEventListener(dropZone, 'click', () => fileInput.click());
+                addEventListener(dropZone, 'dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#3498db';
+                    dropZone.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                });
+                addEventListener(dropZone, 'dragleave', () => {
+                    dropZone.style.borderColor = '#e0e0e0';
+                    dropZone.style.backgroundColor = 'transparent';
+                });
+                addEventListener(dropZone, 'drop', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#e0e0e0';
+                    dropZone.style.backgroundColor = 'transparent';
+                    
+                    if (e.dataTransfer.files.length) {
+                        fileInput.files = e.dataTransfer.files;
+                        handleFileUpload(e.dataTransfer.files[0]);
+                    }
+                });
+
+                // 文件上传处理
+                addEventListener(fileInput, 'change', (e) => {
+                    if (e.target.files.length) {
+                        handleFileUpload(e.target.files[0]);
+                    }
+                });
+
+                // JSON解析按钮
+                addEventListener(parseButton, 'click', () => {
+                    const jsonText = jsonInput.value.trim();
+                    if (jsonText) {
+                        try {
+                            showLoading();
+                            requestAnimationFrame(() => {
+                                const data = JSON.parse(jsonText);
+                                conversationsData = data;
+                                applyFilters();
+                                hideLoading();
+                                window.autoCollapseUploadSection(); // 解析成功后关闭模态窗口
+                            });
+                        } catch (error) {
+                            hideLoading();
+                            alert('JSON解析错误: ' + error.message);
+                        }
+                    } else {
+                        alert('请输入JSON内容');
+                    }
+                });
+
+                // 搜索和筛选事件监听
+                addEventListener(searchInput, 'input', utils.debounce(() => {
+                    conversationFilters.search = searchInput.value.toLowerCase();
+                    applyFilters();
+                    updateSearchStats();
+                }, 300));
+
+                addEventListener(filterStartDate, 'change', () => {
+                    conversationFilters.dateRange.start = filterStartDate.value ? new Date(filterStartDate.value) : null;
+                    applyFilters();
+                });
+
+                addEventListener(filterEndDate, 'change', () => {
+                    conversationFilters.dateRange.end = filterEndDate.value ? new Date(filterEndDate.value) : null;
+                    applyFilters();
+                });
+
+                addEventListener(sortSelect, 'change', () => {
+                    conversationFilters.sortBy = sortSelect.value;
+                    applyFilters();
+                });
+
+                // 侧边栏宽度调整
+                let isResizing = false;
+                addEventListener(resizeHandle, 'mousedown', (e) => {
+                    isResizing = true;
+                    document.body.style.cursor = 'col-resize';
+                    e.preventDefault();
+                });
+
+                addEventListener(document, 'mousemove', (e) => {
+                    if (!isResizing) return;
+                    
+                    const containerRect = document.querySelector('.main-container').getBoundingClientRect();
+                    const newWidth = e.clientX - containerRect.left;
+                    
+                    if (newWidth > 200 && newWidth < containerRect.width * 0.7) {
+                        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+                    }
+                });
+
+                addEventListener(document, 'mouseup', () => {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                });
+            }
+
+            // 初始化绑定事件
+            bindEvents();
 
             // 处理文件上传
             function handleFileUpload(file) {
@@ -913,70 +1609,110 @@
                     alert('请上传JSON文件');
                     return;
                 }
-
+                showLoading();
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        jsonInput.value = JSON.stringify(data, null, 2);
-                        conversationsData = data;
-                        applyFilters();
-                    } catch (error) {
-                        alert('JSON解析错误: ' + error.message);
-                    }
+                    requestAnimationFrame(() => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            jsonInput.value = JSON.stringify(data, null, 2);
+                            conversationsData = data;
+                            applyFilters();
+                            hideLoading();
+                            window.autoCollapseUploadSection(); // 解析成功后关闭模态窗口
+                        } catch (error) {
+                            hideLoading();
+                            alert('JSON解析错误: ' + error.message);
+                        }
+                    });
                 };
                 reader.readAsText(file);
+            }
+
+            // 排序对话
+            function sortConversations(data) {
+                const sortedData = [...data];
+                
+                switch (conversationFilters.sortBy) {
+                    case 'newest':
+                        sortedData.sort((a, b) => new Date(b.inserted_at) - new Date(a.inserted_at));
+                        break;
+                    case 'oldest':
+                        sortedData.sort((a, b) => new Date(a.inserted_at) - new Date(b.inserted_at));
+                        break;
+                    case 'title':
+                        sortedData.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                        break;
+                }
+                
+                return sortedData;
             }
 
             // 应用筛选条件
             function applyFilters() {
                 if (conversationsData.length === 0) return;
                 
-                const filteredConversations = conversationsData.filter(conversation => {
-                    // 日期筛选
-                    const insertedDate = new Date(conversation.inserted_at);
-                    if (currentFilters.dateRange.start && insertedDate < currentFilters.dateRange.start) {
-                        return false;
-                    }
-                    if (currentFilters.dateRange.end) {
-                        const endDate = new Date(currentFilters.dateRange.end);
-                        endDate.setHours(23, 59, 59, 999);
-                        if (insertedDate > endDate) {
+                showLoading();
+                
+                // 使用requestAnimationFrame避免阻塞UI
+                requestAnimationFrame(() => {
+                    const filteredConversations = conversationsData.filter(conversation => {
+                        // 日期筛选
+                        const insertedDate = new Date(conversation.inserted_at);
+                        if (conversationFilters.dateRange.start && insertedDate < conversationFilters.dateRange.start) {
                             return false;
                         }
-                    }
-                    
-                    // 搜索筛选
-                    if (currentFilters.search) {
-                        const titleMatch = conversation.title && conversation.title.toLowerCase().includes(currentFilters.search);
-                        
-                        let contentMatch = false;
-                        // 检查对话内容是否匹配
-                        if (conversation.mapping) {
-                            for (const key in conversation.mapping) {
-                                const node = conversation.mapping[key];
-                                if (node.message && node.message.fragments) {
-                                    for (const fragment of node.message.fragments) {
-                                        if (fragment.content && fragment.content.toLowerCase().includes(currentFilters.search)) {
-                                            contentMatch = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (contentMatch) break;
+                        if (conversationFilters.dateRange.end) {
+                            const filterEndDate = new Date(conversationFilters.dateRange.end);
+                            filterEndDate.setHours(23, 59, 59, 999);
+                            if (insertedDate > filterEndDate) {
+                                return false;
                             }
                         }
                         
-                        if (!titleMatch && !contentMatch) {
-                            return false;
+                        // 搜索筛选
+                        if (conversationFilters.search) {
+                            const titleMatch = conversation.title && conversation.title.toLowerCase().includes(conversationFilters.search);
+                            
+                            let contentMatch = false;
+                            // 检查对话内容是否匹配
+                            if (conversation.mapping) {
+                                for (const key in conversation.mapping) {
+                                    const node = conversation.mapping[key];
+                                    if (node.message && node.message.fragments) {
+                                        for (const fragment of node.message.fragments) {
+                                            if (fragment.content && fragment.content.toLowerCase().includes(conversationFilters.search)) {
+                                                contentMatch = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (contentMatch) break;
+                                }
+                            }
+                            
+                            if (!titleMatch && !contentMatch) {
+                                return false;
+                            }
                         }
-                    }
+                        
+                        return true;
+                    });
                     
-                    return true;
+                    // 排序
+                    const sortedConversations = sortConversations(filteredConversations);
+                    
+                    // 使用文档碎片提高性能
+                    const fragment = document.createDocumentFragment();
+                    renderConversations(sortedConversations, fragment);
+                    conversationsContainer.innerHTML = '';
+                    conversationsContainer.appendChild(fragment);
+                    
+                    updateSearchStats();
+                    conversationCount.textContent = `${sortedConversations.length} 个对话`;
+                    
+                    hideLoading();
                 });
-                
-                renderConversations(filteredConversations);
-                updateSearchStats();
             }
 
             // 更新搜索统计
@@ -987,47 +1723,51 @@
                 const conversationItems = document.querySelectorAll('.conversation-item');
                 conversationItems.forEach((item) => {
                     const title = item.querySelector('.conversation-title').textContent;
-                    if (title.toLowerCase().includes(currentFilters.search)) {
+                    if (title.toLowerCase().includes(conversationFilters.search)) {
                         totalMatches++;
                     }
                 });
                 
                 // 计算内容中的匹配数
-                if (currentConversation && currentFilters.search) {
+                if (currentConversation && conversationFilters.search) {
                     const contentElements = document.querySelectorAll('.conversation-detail .highlight');
                     totalMatches += contentElements.length;
                 }
                 
-                searchStats.textContent = `本对话中找到 ${totalMatches} 个匹配项`;
+                searchStats.textContent = `找到 ${totalMatches} 个匹配项`;
             }
 
             // 渲染对话列表
-            function renderConversations(data) {
-                conversationsContainer.innerHTML = '';
-                
+            function renderConversations(data, container) {
                 if (!Array.isArray(data) || data.length === 0) {
-                    conversationsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #777;">没有找到匹配的对话</div>';
+                    const noResults = document.createElement('div');
+                    noResults.style.padding = '20px';
+                    noResults.style.textAlign = 'center';
+                    noResults.style.color = '#777';
+                    noResults.textContent = '没有找到匹配的对话';
+                    container.appendChild(noResults);
                     return;
                 }
                 
-                data.forEach((conversation, index) => {
+                data.forEach((conversation) => {
                     const conversationItem = document.createElement('div');
                     conversationItem.className = 'conversation-item';
                     conversationItem.dataset.id = conversation.id;
+                    conversationItem.tabIndex = 0; // 使可聚焦
                     
-                    const startDate = new Date(conversation.inserted_at);
-                    const endDate = new Date(conversation.updated_at);
+                    const filterStartDate = new Date(conversation.inserted_at);
+                    const filterEndDate = new Date(conversation.updated_at);
                     
                     // 格式化时间显示
                     const timeFormat = { 
-                        start: formatDateTime(startDate), 
-                        end: formatDateTime(endDate) 
+                        start: utils.formatDateTime(filterStartDate), 
+                        end: utils.formatDateTime(filterEndDate) 
                     };
                     
                     // 高亮搜索关键词
                     let titleHtml = conversation.title || '无标题对话';
-                    if (currentFilters.search) {
-                        titleHtml = highlightText(titleHtml, currentFilters.search);
+                    if (conversationFilters.search) {
+                        titleHtml = utils.highlightText(titleHtml, conversationFilters.search);
                     }
                     
                     conversationItem.innerHTML = `
@@ -1035,81 +1775,91 @@
                         <div class="conversation-time">${timeFormat.start} - ${timeFormat.end}</div>
                     `;
                     
-                    conversationItem.addEventListener('click', () => {
+                    // 添加点击事件
+                    const clickHandler = () => {
                         document.querySelectorAll('.conversation-item').forEach(item => {
                             item.classList.remove('active');
                         });
                         conversationItem.classList.add('active');
                         currentConversation = conversation;
-                        renderConversationDetail(conversation);
+                        renderconversationDetailContainer(conversation);
+                    };
+                    
+                    conversationItem.addEventListener('click', clickHandler);
+                    
+                    // 添加键盘事件
+                    conversationItem.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            clickHandler();
+                        }
                     });
                     
-                    conversationsContainer.appendChild(conversationItem);
+                    container.appendChild(conversationItem);
                 });
-            }
-
-            // 格式化日期和时间
-            function formatDateTime(date) {
-                return date.toLocaleString([], { 
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-            }
-
-            // 高亮文本
-            function highlightText(text, searchTerm) {
-                if (!searchTerm) return text;
-                
-                const regex = new RegExp(`(${searchTerm})`, 'gi');
-                return text.replace(regex, '<span class="highlight">$1</span>');
             }
 
             // 渲染对话详情
-            function renderConversationDetail(conversation) {
-                conversationDetail.innerHTML = `
-                    <div class="conversation-header">
-                        <h2>${conversation.title || '无标题对话'}</h2>
-                        <p class="timestamp">
-                            <i class="far fa-clock"></i> 
-                            开始: ${formatDateTime(new Date(conversation.inserted_at))} | 
-                            结束: ${formatDateTime(new Date(conversation.updated_at))}
-                        </p>
-                    </div>
-                    <div id="conversationContent"></div>
-                `;
-                
-                const contentContainer = document.getElementById('conversationContent');
-                renderConversationContent(conversation.mapping, contentContainer, 'root', []);
-                
-                // 增强代码块
-                enhanceCodeBlocks();
-                
-                // 更新搜索统计
-                updateSearchStats();
+            function renderconversationDetailContainer(conversation) {
+                // 使用requestAnimationFrame提高性能
+                requestAnimationFrame(() => {
+                    conversationDetailContainer.innerHTML = `
+                        <div class="conversation-header">
+                            <h2>${conversation.title || '无标题对话'}</h2>
+                            <p class="timestamp">
+                                <i class="far fa-clock"></i> 
+                                开始: ${utils.formatDateTime(new Date(conversation.inserted_at))} | 
+                                结束: ${utils.formatDateTime(new Date(conversation.updated_at))}
+                            </p>
+                        </div>
+                        <div id="conversationContent"></div>
+                    `;
+                    
+                    const contentContainer = document.getElementById('conversationContent');
+                    renderConversationNodes(conversation.mapping, contentContainer, 'root', []);
+                    
+                    // 增强代码块
+                    enhanceCodeBlocks();
+                    
+                    // 更新搜索统计
+                    updateSearchStats();
+                });
             }
 
             // 渲染对话内容（平铺结构）
-            function renderConversationContent(mapping, container, nodeId, path) {
+            function renderConversationNodes(mapping, container, nodeId, path) {
                 const node = mapping[nodeId];
                 if (!node || !node.children || node.children.length === 0) return;
-                
+
                 // 如果有多个分支，添加分支导航
                 if (node.children.length > 1) {
                     const branchNav = document.createElement('div');
                     branchNav.className = 'branch-navigation';
-                    
-                    const currentPath = [...path, 0];
-                    const currentBranchIndex = currentPath[currentPath.length - 1];
-                    
+
+                    // 优先读取当前分支状态
+                    const branchKey = nodeId + '-' + path.join('-');
+                    let currentBranchIndex = branchNavigationIndex[branchKey];
+                    if (typeof currentBranchIndex !== 'number' || currentBranchIndex < 0 || currentBranchIndex >= node.children.length) {
+                        currentBranchIndex = 0;
+                    }
+                    const currentPath = [...path.slice(0, -1), currentBranchIndex];
+
+                    branchNavigationIndex[branchKey] = currentBranchIndex;
+
                     branchNav.innerHTML = `
-                        <input type="number" class="branch-input" value="${currentBranchIndex + 1}" min="1" max="${node.children.length}">
+                        <button class="branch-nav-btn prev-branch" ${currentBranchIndex === 0 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <input type="number" class="branch-input" value="${currentBranchIndex + 1}" min="1" max="${node.children.length}" aria-label="当前分支">
                         <span class="branch-total">/ ${node.children.length}</span>
+                        <button class="branch-nav-btn next-branch" ${currentBranchIndex === node.children.length - 1 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     `;
                     
                     const branchInput = branchNav.querySelector('.branch-input');
+                    const prevBtn = branchNav.querySelector('.prev-branch');
+                    const nextBtn = branchNav.querySelector('.next-branch');
                     
                     // 输入框变化事件
                     branchInput.addEventListener('change', () => {
@@ -1119,7 +1869,30 @@
                         
                         branchInput.value = value;
                         const newPath = [...path.slice(0, -1), value - 1];
+                        branchNavigationIndex[branchKey] = value - 1;
                         renderBranch(mapping, container, node.children[value - 1], newPath, node.children.length);
+                    });
+                    
+                    // 上一分支事件
+                    prevBtn.addEventListener('click', () => {
+                        let idx = branchNavigationIndex[branchKey];
+                        if (typeof idx !== 'number') idx = 0;
+                        if (idx > 0) {
+                            const newPath = [...path.slice(0, -1), idx - 1];
+                            branchNavigationIndex[branchKey] = idx - 1;
+                            renderBranch(mapping, container, node.children[idx - 1], newPath, node.children.length);
+                        }
+                    });
+                    
+                    // 下一分支事件
+                    nextBtn.addEventListener('click', () => {
+                        let idx = branchNavigationIndex[branchKey];
+                        if (typeof idx !== 'number') idx = 0;
+                        if (idx < node.children.length - 1) {
+                            const newPath = [...path.slice(0, -1), idx + 1];
+                            branchNavigationIndex[branchKey] = idx + 1;
+                            renderBranch(mapping, container, node.children[idx + 1], newPath, node.children.length);
+                        }
                     });
                     
                     container.appendChild(branchNav);
@@ -1167,15 +1940,15 @@
                             
                             let fragmentContent = fragment.content || '';
                             // 高亮搜索关键词
-                            if (currentFilters.search && fragmentContent) {
-                                fragmentContent = highlightText(fragmentContent, currentFilters.search);
+                            if (conversationFilters.search && fragmentContent) {
+                                fragmentContent = utils.highlightText(fragmentContent, conversationFilters.search);
                             }
                             
                             fragmentsHtml += `
                                 <div class="fragment ${fragment.type.toLowerCase()}">
                                     <div class="fragment-header">
                                         <span>${fragment.type}</span>
-                                        <span class="timestamp">${formatDateTime(insertedAt)}</span>
+                                        <span class="timestamp">${utils.formatDateTime(insertedAt)}</span>
                                     </div>
                                     <div class="fragment-content">
                                         ${renderFragmentContent(fragment, fragmentContent)}
@@ -1196,7 +1969,7 @@
                                 </span>
                             </div>
                             <div class="timestamp">
-                                ${formatDateTime(insertedAt)}
+                                ${utils.formatDateTime(insertedAt)}
                             </div>
                         </div>
                         <div class="message-content">
@@ -1212,7 +1985,7 @@
                         if (currentNode.children.length > 1) {
                             const childContainer = document.createElement('div');
                             branchContent.appendChild(childContainer);
-                            renderConversationContent(mapping, childContainer, currentNodeId, path);
+                            renderConversationNodes(mapping, childContainer, currentNodeId, path);
                             break;
                         } else {
                             // 只有一个子节点，继续处理
@@ -1222,6 +1995,27 @@
                         currentNodeId = null;
                     }
                 }
+                
+                // 更新分支导航按钮状态
+                updateBranchNavigation(container, path, totalBranches);
+            }
+
+            // 更新分支导航按钮状态
+            function updateBranchNavigation(container, path, totalBranches) {
+                const branchNav = container.querySelector('.branch-navigation');
+                if (!branchNav) return;
+                
+                const currentBranchIndex = path[path.length - 1];
+                const prevBtn = branchNav.querySelector('.prev-branch');
+                const nextBtn = branchNav.querySelector('.next-branch');
+                const branchInput = branchNav.querySelector('.branch-input');
+                
+                // 更新输入框值
+                branchInput.value = currentBranchIndex + 1;
+                
+                // 更新按钮状态
+                prevBtn.disabled = currentBranchIndex === 0;
+                nextBtn.disabled = currentBranchIndex === totalBranches - 1;
             }
 
             // 获取消息类型文本
@@ -1249,9 +2043,9 @@
                                 let snippet = result.snippet || '';
                                 
                                 // 高亮搜索关键词
-                                if (currentFilters.search) {
-                                    title = highlightText(title, currentFilters.search);
-                                    snippet = highlightText(snippet, currentFilters.search);
+                                if (conversationFilters.search) {
+                                    title = utils.highlightText(title, conversationFilters.search);
+                                    snippet = utils.highlightText(snippet, conversationFilters.search);
                                 }
                                 
                                 return `
@@ -1270,11 +2064,10 @@
                         } else {
                             return `<pre>${JSON.stringify(fragment, null, 2)}</pre>`;
                         }
-                        break;
                     
                     default:
                         if (fragment.content) {
-                            return `<pre>${fragment.content}</pre>`;
+                            return `<pre>${JSON.stringify(fragment, null, 2)}</pre>`;
                         } else {
                             return `<pre>${JSON.stringify(fragment, null, 2)}</pre>`;
                         }
@@ -1289,54 +2082,82 @@
                         const codeBlock = document.createElement('div');
                         codeBlock.className = 'code-block';
                         pre.parentElement.insertBefore(codeBlock, pre);
+                        
+                        // 获取语言类型
+                        let language = utils.getLanguageFromClass(block.className);
+                        if (language === 'txt') {
+                            // 自动检测语言
+                            language = utils.detectCodeLanguage(block.textContent);
+                            block.className = `language-${language}`;
+                        }
+                        
+                        // 重新高亮代码
+                        hljs.highlightElement(block);
+                        
+                        // 获取文件扩展名
+                        const fileExtension = utils.getFileExtension(language);
+                        
+                        // 创建代码头部
+                        const codeHeader = document.createElement('div');
+                        codeHeader.className = 'code-header';
+                        codeHeader.innerHTML = `
+                            <span>${language.toUpperCase()}</span>
+                            <div class="code-actions">
+                                <button class="code-btn copy-code">复制</button>
+                                <button class="code-btn download-code">下载</button>
+                            </div>
+                        `;
+                        
+                        codeBlock.appendChild(codeHeader);
                         codeBlock.appendChild(pre);
                         
-                        const codeActions = document.createElement('div');
-                        codeActions.className = 'code-actions';
-                        codeActions.innerHTML = `
-                            <button class="code-btn copy-code">复制</button>
-                            <button class="code-btn download-code">下载</button>
-                        `;
-                        codeBlock.appendChild(codeActions);
-                    }
-                });
-
-                // 复制代码功能
-                document.querySelectorAll('.copy-code').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        const codeBlock = e.target.closest('.code-block');
-                        const code = codeBlock.querySelector('code').innerText;
-                        navigator.clipboard.writeText(code).then(() => {
-                            const originalText = e.target.textContent;
-                            e.target.textContent = '已复制!';
-                            setTimeout(() => {
-                                e.target.textContent = originalText;
-                            }, 2000);
+                        // 复制代码功能
+                        const copyBtn = codeHeader.querySelector('.copy-code');
+                        copyBtn.addEventListener('click', function(e) {
+                            const code = block.innerText;
+                            navigator.clipboard.writeText(code).then(() => {
+                                const originalText = e.target.textContent;
+                                e.target.textContent = '已复制!';
+                                setTimeout(() => {
+                                    e.target.textContent = originalText;
+                                }, 2000);
+                            });
                         });
-                    });
-                });
-                
-                // 下载代码功能
-                document.querySelectorAll('.download-code').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        const codeBlock = e.target.closest('.code-block');
-                        const code = codeBlock.querySelector('code').innerText;
-                        const lang = codeBlock.querySelector('code').className.replace('language-', '') || 'txt';
-                        const blob = new Blob([code], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `code.${lang}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    });
+                        
+                        // 下载代码功能
+                        const downloadBtn = codeHeader.querySelector('.download-code');
+                        downloadBtn.addEventListener('click', function(e) {
+                            const code = block.innerText;
+                            const blob = new Blob([code], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `code.${fileExtension}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        });
+                    }
                 });
             }
 
             // 初始化主题
             initTheme();
+            
+            // 页面加载时自动打开上传模态窗口
+            openUploadModal();
+            
+            // 页面加载时自动折叠内容区域
+            contentArea.classList.add('collapsed');
+            toggleContentBtn.innerHTML = '<i class="fas fa-file-alt"></i> <span>显示内容</span>';
+            
+            // 页面加载时展开对话列表（纵向布局）
+            if (isPortraitMobile()) {
+                const conversationList = document.getElementById('conversationList');
+                conversationList.classList.add('expanded');
+                toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
+            }
         });
     </script>
 </body>
