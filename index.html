@@ -860,6 +860,31 @@
             .toggle-content-btn {
                 display: block !important;
             }
+    
+            /* 确保对话列表容器可以滚动 */
+            .conversations-container {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch; /* 改善移动端滚动体验 */
+            }
+            
+            /* 当对话列表覆盖整个内容区域时，确保其可以滚动 */
+            .conversation-list.expanded.cover-content {
+                height: 100%;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .conversation-list.expanded.cover-content .conversations-container {
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* 确保搜索栏不随内容滚动 */
+            .search-filters {
+                flex-shrink: 0;
+            }
         }
         /* 横向布局下隐藏正文切换按钮 */
         @media (orientation: landscape) {
