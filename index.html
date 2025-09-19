@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN" data-theme="dark"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeepSeek导出对话查看器</title>
@@ -856,7 +854,7 @@
                 z-index: 20;
                 box-shadow: 0 0 10px rgba(0,0,0,0.08);
                 /* 保证搜索栏在上方，列表内容下移 */
-                margin-top: 60px;
+                padding-top: 60px;
             }
             /* 纵向布局下显示正文切换按钮 */
             .toggle-content-btn {
@@ -941,7 +939,7 @@
     <div class="upload-modal" id="uploadModal">
         <div class="modal-header">
             <h3>上传或输入JSON内容</h3>
-            <button class="close-modal" id="closeModal">&times;</button>
+            <button class="close-modal" id="closeModal">×</button>
         </div>
         <div class="upload-section">
             <div class="file-upload" id="dropZone">
@@ -954,6 +952,7 @@
                 <h3 style="font-size: 0.95rem; margin-bottom: 8px;">或手动输入JSON内容：</h3>
                 <textarea class="json-input" id="jsonInput" placeholder="在此处粘贴JSON内容..."></textarea>
                 <button id="parseButton">解析JSON</button>
+                <p>不知道如何获取JSON数据？<a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/blob/main/README.md#how-to-use" target="_blank">查看说明</a></p>
             </div>
         </div>
     </div>
@@ -961,7 +960,7 @@
     <header>
         <div class="header-main">
             <h1><i class="fas fa-comments"></i>DeepSeek导出对话查看器</h1>
-            <p>上传JSON文件或手动输入JSON内容以查看DeepSeek对话</p>
+            <p>上传JSON文件或手动输入JSON内容以查看DeepSeek对话。最后更新时间：2025年9月19日23点34分。<a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/" target="_blank">项目主页</a></p>
         </div>
         <div class="header-controls">
             <button class="upload-modal-btn" id="uploadModalBtn" aria-label="上传JSON">
@@ -970,20 +969,18 @@
             <button class="toggle-sidebar-btn" id="toggleSidebarBtn" aria-label="切换边栏">
                 <i class="fas fa-list"></i> <span>显示边栏</span>
             </button>
-            <button class="toggle-content-btn" id="toggleContentBtn" aria-label="切换内容区域">
-                <i class="fas fa-file-alt"></i> <span>显示内容</span>
-            </button>
+            <button class="toggle-content-btn" id="toggleContentBtn" aria-label="切换内容区域" style="display: none;"><i class="fas fa-file-alt"></i> <span>显示内容</span></button>
             <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
-                <i class="fas fa-moon"></i> <span>深色模式</span>
+                <i class="fas fa-sun"></i> <span>浅色模式</span>
             </button>
             <button class="save-btn" id="saveBtn" aria-label="保存网页">
-                <i class="fas fa-download"></i> <span>保存</span>
+                <i class="fas fa-download"></i> <span>离线保存</span>
             </button>
             <button class="print-btn" id="printBtn" aria-label="打印内容">
-                <i class="fas fa-print"></i> <span>打印</span>
+                <i class="fas fa-print"></i> <span>打印对话</span>
             </button>
-            <button class="reset-btn" id="resetBtn" aria-label="重置应用">
-                <i class="fas fa-redo"></i> <span>重置</span>
+            <button class="reset-btn" id="resetBtn" aria-label="关闭对话">
+                <i class="fas fa-redo"></i> <span>关闭对话</span>
             </button>
         </div>
     </header>
@@ -1015,11 +1012,13 @@
             </div>
 
             <div class="conversation-list" id="conversationList">
+                <div class="conversation-list-header">
+                    <span><i class="fas fa-list"></i> 对话列表</span>
+                    <span id="conversationCount">0 个对话</span>
+                </div>
                 <div class="conversations-container" id="conversationsContainer">
-                    <div class="conversation-list-header">
-                        <span><i class="fas fa-list"></i> 对话列表</span>
-                        <span id="conversationCount">0 个对话</span>
-                    </div>
+                    <p style="padding: 15px; color: #777;">尚未加载任何对话。请点击上方的“上传JSON”按钮。</p>
+                    <!-- 对话项渲染区域 -->
                 </div>
             </div>
         </div>
@@ -1027,12 +1026,7 @@
         <div class="resize-handle" id="resizeHandle"></div>
 
         <div class="content-area" id="contentArea">
-            <div class="conversation-detail" id="conversationDetailContainer">
-                <div style="text-align: center; padding: 40px; color: #777;">
-                    <i class="fas fa-comment-dots" style="font-size: 48px;"></i>
-                    <p>选择左侧的对话以查看详情</p>
-                </div>
-            </div>
+            <div class="conversation-detail" id="conversationDetailContainer"><div style="text-align: center; padding: 40px; color: #777;"><i class="fas fa-comment-dots" style="font-size: 48px;"></i><p>选择左侧的对话以查看详情</p></div></div>
         </div>
     </div>
 
@@ -1432,7 +1426,7 @@
 
             // 重置应用
             resetBtn.addEventListener('click', () => {
-                if (confirm('确定要重置应用吗？所有数据将会丢失。')) {
+                if (confirm('确定要关闭当前打开的对话吗？所有数据将会丢失。')) {
                     // 清除所有数据
                     conversationsData = [];
                     conversationFilters = {
@@ -1453,7 +1447,7 @@
                     fileInput.value = '';
                     
                     // 清空容器
-                    conversationsContainer.innerHTML = '';
+                    conversationsContainer.innerHTML = ''; // 只清空 conversationsContainer
                     conversationDetailContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #777;"><i class="fas fa-comment-dots" style="font-size: 48px;"></i><p>选择左侧的对话以查看详情</p></div>';
                     
                     // 更新统计
@@ -1740,6 +1734,7 @@
             // 渲染对话列表
             function renderConversations(data, container) {
                 if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML = '';
                     const noResults = document.createElement('div');
                     noResults.style.padding = '20px';
                     noResults.style.textAlign = 'center';
@@ -1748,7 +1743,7 @@
                     container.appendChild(noResults);
                     return;
                 }
-                
+                container.innerHTML = ''; // 只清空 conversationsContainer
                 data.forEach((conversation) => {
                     const conversationItem = document.createElement('div');
                     conversationItem.className = 'conversation-item';
@@ -2160,5 +2155,5 @@
             }
         });
     </script>
-</body>
-</html>
+
+</body></html>
