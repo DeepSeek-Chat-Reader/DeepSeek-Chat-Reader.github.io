@@ -578,6 +578,7 @@
             margin: 10px 0;
             background: #2d2d2d;
             border-radius: 5px;
+            page-break-inside: avoid;
         }
 
         .code-header {
@@ -595,11 +596,11 @@
         .code-actions {
             display: flex;
             gap: 5px;
+            flex-wrap: wrap;
         }
 
         .code-btn {
-            background: rgba(255, 255, 255, 0.7);
-            border: none;
+            background: rgba(255, 255, 255);
             border-radius: 3px;
             padding: 3px 8px;
             font-size: 0.75rem;
@@ -609,7 +610,7 @@
         }
 
         .code-btn:hover {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgb(93, 173, 226);
         }
 
         pre {
@@ -748,6 +749,7 @@
             align-items: center;
             justify-content: center;
             font-size: 15px;
+            flex-shrink: 0;
         }
 
         .branch-nav-btn:disabled {
@@ -767,6 +769,7 @@
             color: var(--text-color);
             font-size: 15px;
             box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         /* Markdown 表格样式 */
@@ -821,6 +824,18 @@
             .conversation-detail {
                 padding: 15px;
             }
+            /* 修改：搜索栏不再始终显示 */
+            .search-filters {
+                display: none;
+            }
+            .conversation-list.expanded .search-filters {
+                display: block;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                background: var(--card-bg);
+                border-bottom: 1px solid var(--border-color);
+            }
             .conversation-list {
                 display: none;
             }
@@ -834,13 +849,7 @@
                 background: var(--card-bg);
                 z-index: 2;
             }
-            /* 保证搜索栏始终显示 */
-            .search-filters {
-                display: block !important;
-                position: relative;
-                z-index: 21;
-            }
-            /* 新增：正文折叠时对话列表扩展覆盖正文区域，但不影响搜索栏 */
+            /* 新增：正文折叠时对话列表扩展覆盖正文区域 */
             .conversation-list.expanded.cover-content {
                 position: absolute;
                 left: 0;
@@ -853,8 +862,6 @@
                 background: var(--card-bg);
                 z-index: 20;
                 box-shadow: 0 0 10px rgba(0,0,0,0.08);
-                /* 保证搜索栏在上方，列表内容下移 */
-                padding-top: 180px;
             }
             /* 纵向布局下显示正文切换按钮 */
             .toggle-content-btn {
@@ -882,8 +889,10 @@
             }
             
             /* 确保搜索栏不随内容滚动 */
-            .search-filters {
-                flex-shrink: 0;
+            .conversation-list.expanded.cover-content .search-filters {
+                position: sticky;
+                top: 0;
+                z-index: 21;
             }
         }
         /* 横向布局下隐藏正文切换按钮 */
@@ -1012,37 +1021,38 @@
 
     <div class="main-container">
         <div class="sidebar" id="sidebar">
-            <div class="search-filters">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="搜索对话标题或内容..." aria-label="搜索对话">
-                </div>
-                
-                <div class="search-stats" id="searchStats">
-                    找到 0 个匹配项
-                </div>
-                
-                <div class="date-filter">
-                    <input type="date" id="filterStartDate" placeholder="开始日期" aria-label="开始日期">
-                    <input type="date" id="filterEndDate" placeholder="结束日期" aria-label="结束日期">
-                </div>
-
-                <div class="sort-options">
-                    <select id="sortSelect" aria-label="排序方式">
-                        <option value="newest">由新到旧</option>
-                        <option value="oldest">由旧到新</option>
-                        <option value="title">按标题排序</option>
-                    </select>
-                </div>
-            </div>
-
             <div class="conversation-list" id="conversationList">
+                <!-- 将搜索栏移动到对话列表内部 -->
+                <div class="search-filters">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="搜索对话标题或内容..." aria-label="搜索对话">
+                    </div>
+                    
+                    <div class="search-stats" id="searchStats">
+                        找到 0 个匹配项
+                    </div>
+                    
+                    <div class="date-filter">
+                        <input type="date" id="filterStartDate" placeholder="开始日期" aria-label="开始日期">
+                        <input type="date" id="filterEndDate" placeholder="结束日期" aria-label="结束日期">
+                    </div>
+
+                    <div class="sort-options">
+                        <select id="sortSelect" aria-label="排序方式">
+                            <option value="newest">由新到旧</option>
+                            <option value="oldest">由旧到新</option>
+                            <option value="title">按标题排序</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="conversation-list-header">
                     <span><i class="fas fa-list"></i> 对话列表</span>
                     <span id="conversationCount">0 个对话</span>
                 </div>
                 <div class="conversations-container" id="conversationsContainer">
-                    <p style="padding: 15px; color: #777;">尚未加载任何对话。请点击上方的“上传JSON”按钮。</p>
+                    <p style="padding: 15px; color: #777;">尚未加载任何对话。请点击上方的"上传JSON"按钮。</p>
                     <!-- 对话项渲染区域 -->
                 </div>
             </div>
@@ -1314,20 +1324,16 @@
             function toggleContentArea() {
                 contentArea.classList.toggle('collapsed');
                 const conversationList = document.getElementById('conversationList');
-                const searchFilters = document.querySelector('.search-filters');
                 if (isPortraitMobile()) {
                     if (contentArea.classList.contains('collapsed')) {
                         // 折叠正文时扩展对话列表覆盖正文区域
                         if (conversationList.classList.contains('expanded')) {
                             conversationList.classList.add('cover-content');
                         }
-                        // 保证搜索栏显示
-                        searchFilters.style.display = 'block';
                         toggleContentBtn.innerHTML = '<i class="fas fa-file-alt"></i> <span>显示内容</span>';
                     } else {
                         // 展开正文时恢复对话列表原状
                         conversationList.classList.remove('cover-content');
-                        searchFilters.style.display = 'block';
                         toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
                     }
                 } else {
@@ -1351,13 +1357,6 @@
                     toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
                 }
                 toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
-                
-                // 纵向布局下加载完成后展开对话列表
-                if (isPortraitMobile()) {
-                    const conversationList = document.getElementById('conversationList');
-                    conversationList.classList.add('expanded');
-                    toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
-                }
             };
 
             // 长宽比判断
@@ -1377,16 +1376,12 @@
                     toggleContentBtn.style.display = 'block';
 
                     const conversationList = document.getElementById('conversationList');
-                    const searchFilters = document.querySelector('.search-filters');
                     if (contentArea.classList.contains('collapsed')) {
                         if (conversationList.classList.contains('expanded')) {
                             conversationList.classList.add('cover-content');
                         }
-                        // 保证搜索栏显示
-                        searchFilters.style.display = 'block';
                     } else {
                         conversationList.classList.remove('cover-content');
-                        searchFilters.style.display = 'block';
                     }
                     contentArea.classList.remove('collapsed');
                     toggleContentBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏内容</span>';
@@ -1398,7 +1393,6 @@
                     document.querySelector('.resize-handle').style.display = '';
                     toggleContentBtn.style.display = 'none';
                     document.getElementById('conversationList').classList.remove('cover-content');
-                    document.querySelector('.search-filters').style.display = '';
                     contentArea.classList.remove('collapsed');
                 }
             }
@@ -1494,13 +1488,6 @@
                     // 折叠内容区域
                     contentArea.classList.add('collapsed');
                     toggleContentBtn.innerHTML = '<i class="fas fa-file-alt"></i> <span>显示内容</span>';
-                    // 重置后展开对话列表（纵向布局）
-                    if (isPortraitMobile()) {
-                        const conversationList = document.getElementById('conversationList');
-                        conversationList.classList.add('expanded');
-                        toggleSidebarBtn.innerHTML = '<i class="fas fa-times"></i> <span>隐藏边栏</span>';
-                    }
-                    
                     // 重置后展开对话列表（纵向布局）
                     if (isPortraitMobile()) {
                         const conversationList = document.getElementById('conversationList');
