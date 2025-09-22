@@ -1121,8 +1121,11 @@
         </div>
         <div class="upload-section" style="border-bottom:none;">
             <h4  style="margin-bottom:10px;">保存当前网页（不保存已编辑的对话）</h4>
-            <button id="saveOriginalBtn" style="margin-bottom:10px;">
+            <button id="saveOriginalGitHubBtn" style="margin-bottom:10px;">
                 <i class="fa fa-github"></i> 从 GitHub下载最新版本（推荐）
+            </button>
+            <button id="saveOriginalGiteeBtn" style="margin-bottom:10px;">
+                <i class="fa fa-gitee"></i> 从 Gitee下载最新版本
             </button>
             <button id="saveOfflineBtn" class="btn-failure" style="margin-bottom:10px;">
                 <i class="fa fa-file-code-o"></i> 保存阅读器快照（不推荐）
@@ -1640,8 +1643,13 @@
             });
 
             // 从GitHub下载最新版本
-            saveOriginalBtn.addEventListener('click', function() {
+            saveOriginalGitHubBtn.addEventListener('click', function() {
                 window.open('https://raw.githubusercontent.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/main/index.html', '_blank');
+            });
+
+            // 从Gitee下载最新版本
+            saveOriginalGiteeBtn.addEventListener('click', function() {
+                window.open('https://gitee.com/Short_Arm_Ape/DeepSeek-Chat-Reader/raw/main/index.html', '_blank');
             });
 
             // 保存对话为JSON
