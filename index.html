@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeepSeek导出对话查看器</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
@@ -480,7 +481,15 @@
         }
 
         .btn-danger:hover {
-            background-color: #e53935;
+            background-color: #ff0000;
+        }
+
+        .btn-failure{
+            background-color: #777
+        }
+
+        .btn-failure:hover{
+            background-color: #555
         }
 
         .conversation-item {
@@ -804,6 +813,25 @@
             flex-shrink: 0;
         }
 
+        .branch-nav-del-btn {
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            background: var(--warning-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 2px;
+            min-width: 30px;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
         .branch-nav-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
@@ -1092,14 +1120,19 @@
             <button class="close-modal" id="closeSaveModal">×</button>
         </div>
         <div class="upload-section" style="border-bottom:none;">
-            <button id="saveOfflineBtn" style="margin-bottom:10px;">
-                <i class="fas fa-download"></i> 保存网页以离线使用（不保存对话）
+            <h4  style="margin-bottom:10px;">保存当前网页（不保存已编辑的对话）</h4>
+            <button id="saveOriginalBtn" style="margin-bottom:10px;">
+                <i class="fa fa-github"></i> 从 GitHub下载最新版本（推荐）
             </button>
-            <button id="saveHtmlBtn" style="margin-bottom:10px;">
-                <i class="fas fa-download"></i> 保存对话和阅读器为HTML（存在问题）
+            <button id="saveOfflineBtn" class="btn-failure" style="margin-bottom:10px;">
+                <i class="fa fa-file-code-o"></i> 保存阅读器快照（不推荐）
             </button>
-            <button id="saveJsonBtn" class="btn-danger">
+            <h4  style="margin-bottom:10px;">保存已编辑的对话</h4>
+            <button id="saveJsonBtn" style="margin-bottom:10px;">
                 <i class="fas fa-file-export"></i> 保存对话为JSON
+            </button>
+            <button id="saveHtmlBtn" class="btn-failure" style="margin-bottom:10px;">
+                <i class="fas fa-comments"></i> 保存对话和阅读器快照（存在问题）
             </button>
         </div>
     </div>
@@ -1107,7 +1140,7 @@
     <header>
         <div class="header-main">
             <h1><i class="fas fa-comments"></i>DeepSeek导出对话查看器</h1>
-            <p>最后更新时间：2025年9月21日23点06分（UTC+8）。<a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/" target="_blank">项目主页</a></p>
+            <p>最后更新时间：2025年9月23日02点44分（UTC+8） | <a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/" target="_blank">项目主页</a></p>
         </div>
         <div class="header-controls">
             <button class="upload-modal-btn" id="uploadModalBtn" aria-label="上传JSON">
@@ -1123,10 +1156,10 @@
             <button class="save-btn" id="saveBtn" aria-label="保存网页">
                 <i class="fas fa-download"></i> <span>离线保存</span>
             </button>
-            <button class="print-btn" id="printBtn" aria-label="打印内容">
+            <button class="print-btn btn-failure" id="printBtn" aria-label="打印内容">
                 <i class="fas fa-print"></i> <span>打印对话（存在问题）</span>
             </button>
-            <button class="reset-btn" id="resetBtn" aria-label="关闭对话">
+            <button class="reset-btn btn-danger" id="resetBtn" aria-label="关闭对话">
                 <i class="fas fa-times"></i> <span>关闭对话</span>
             </button>
         </div>
@@ -1604,6 +1637,11 @@
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                 }, 100);
+            });
+
+            // 从GitHub下载最新版本
+            saveOriginalBtn.addEventListener('click', function() {
+                window.open('https://raw.githubusercontent.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/main/index.html', '_blank');
             });
 
             // 保存对话为JSON
@@ -2275,7 +2313,7 @@
                         <button class="branch-nav-btn next-branch" ${currentBranchIndex === node.children.length - 1 ? 'disabled' : ''}>
                             <i class="fas fa-chevron-right"></i>
                         </button>
-                        <button class="branch-nav-btn delete-branch btn-danger" title="删除此分支">
+                        <button class="branch-nav-del-btn delete-branch btn-danger" title="删除此分支">
                             <i class="fas fa-trash"></i>
                         </button>
                     `;
