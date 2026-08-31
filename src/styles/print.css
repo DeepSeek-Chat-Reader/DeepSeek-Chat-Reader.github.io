@@ -84,6 +84,7 @@
 
   /* ---------- Keep labels/headers attached to their content ---------- */
   .message-header, .fragment-header, .conversation-header,
+  .code-header,
   h1, h2, h3, h4, h5, h6, summary {
     page-break-after: avoid;
     break-after: avoid;

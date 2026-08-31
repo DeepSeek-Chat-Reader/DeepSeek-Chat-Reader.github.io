@@ -27,3 +27,5 @@ Thumbs.db
 # dev helper
 seed.html
 scripts/serve.mjs
+
+scripts/print-sim.mjs
