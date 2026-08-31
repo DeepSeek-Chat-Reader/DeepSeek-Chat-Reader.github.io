@@ -73,11 +73,17 @@
     break-inside: auto;
   }
 
-  /* Diagrams & math SVGs: cap their size so they fit one page; even if an
-     oversized one must split, no blank gap is left behind. */
+  /* Diagrams & math SVGs: keep WHOLE (a split SVG is worse than a small gap)
+     and cap their height so they fit one page in BOTH orientations
+     (A4 landscape usable height ≈ 186mm). .print-keep binds a heading to its
+     diagram/code (break-after:avoid on headings is unreliable in Chromium). */
+  .mermaid, .math-display, .print-keep {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
   .mermaid svg, .math-display svg {
     max-width: 100%;
-    max-height: 220mm;
+    max-height: 155mm;
     width: auto;
     height: auto;
   }

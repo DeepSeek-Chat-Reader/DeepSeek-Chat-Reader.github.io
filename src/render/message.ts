@@ -258,7 +258,20 @@ async function renderMermaidBlocks(container: HTMLElement): Promise<void> {
     const holder = document.createElement('div');
     holder.className = 'mermaid';
     holder.innerHTML = svg;
-    pre.replaceWith(holder);
+    // Keep a heading + its diagram together when printing: wrap both in an
+    // unsplittable container (break-after:avoid on headings is unreliable in
+    // Chromium, which orphaning the "Mermaid" heading on its own page).
+    const prev = pre.previousElementSibling;
+    const wrap = document.createElement('div');
+    wrap.className = 'print-keep';
+    if (prev && /^H[1-6]$/.test(prev.tagName)) {
+      prev.replaceWith(wrap);
+      wrap.appendChild(prev);
+      pre.remove(); // the diagram replaces the source <pre>
+    } else {
+      pre.replaceWith(wrap);
+    }
+    wrap.appendChild(holder);
   }
 }
 
