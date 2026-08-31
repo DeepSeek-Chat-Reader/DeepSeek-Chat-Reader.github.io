@@ -16,7 +16,10 @@ const zhCN: Dict = {
   lightMode: '浅色模式',
   saveOffline: '保存',
   printConversations: '打印',
-  printExpandThink: '打印展开思考',
+  printOptions: '打印选项',
+  printNow: '打印',
+  printExpandThink: '展开思考与搜索结果',
+  printExpandThinkHint: '勾选后，思考内容和搜索来源会完整打印；不勾选则只打印问题与回答。',
   closeConversations: '关闭对话',
 
   uploadModalTitle: '上传或输入JSON内容',
@@ -116,7 +119,10 @@ const en: Dict = {
   lightMode: 'Light Mode',
   saveOffline: 'Save',
   printConversations: 'Print',
-  printExpandThink: 'Expand thinking on print',
+  printOptions: 'Print Options',
+  printNow: 'Print',
+  printExpandThink: 'Expand thinking & search results',
+  printExpandThinkHint: 'When checked, thinking content and search sources are printed in full; otherwise only questions and answers are printed.',
   closeConversations: 'Close Conversations',
 
   uploadModalTitle: 'Upload or Input JSON Content',

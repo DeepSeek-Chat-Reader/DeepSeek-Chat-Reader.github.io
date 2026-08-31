@@ -52,8 +52,17 @@
   .conversation-chain { display: block; }
   .message { display: block; margin-bottom: 16px; }
 
+  /* ---------- Kill overflow clipping: containers with overflow (hidden/auto)
+     are treated as unsplittable by print engines, which pushes the whole
+     block to the next page and leaves blank regions. This was the root cause
+     of the residual blank pages and the blank space above code/diagrams. ---------- */
+  .message, .fragment, .message-content, .code-block, .mermaid,
+  pre, pre code, .search-list, .file-list, .conversation-chain {
+    overflow: visible !important;
+  }
+
   /* ---------- Big blocks MAY split across pages ---------- */
-  .message, .fragment { page-break-inside: auto; break-inside: auto; }
+  .message, .fragment, .code-block, .mermaid { page-break-inside: auto; break-inside: auto; }
 
   /* ---------- Keep labels/headers attached to their content ---------- */
   .message-header, .fragment-header, .conversation-header,
@@ -76,6 +85,7 @@
   /* ---------- Expand collapsed <details> (THINK / SEARCH) when requested ---------- */
   html.print-expand-think details { display: block !important; }
   html.print-expand-think details > summary { display: block; }
-  html.print-expand-think details > :not(summary) { display: block !important; }
+  /* target the closed state explicitly — beats the UA rule in more engines */
+  html.print-expand-think details:not([open]) > :not(summary) { display: block !important; }
   html.print-expand-think .search-list { display: block; }
 }

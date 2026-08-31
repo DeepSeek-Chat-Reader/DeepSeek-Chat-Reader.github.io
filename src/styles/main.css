@@ -115,13 +115,14 @@ header {
 .print-option {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: 8px;
+  font-size: 0.9rem;
   color: var(--text-color);
   cursor: pointer;
-  white-space: nowrap;
+  margin-bottom: 8px;
 }
 .print-option input { accent-color: var(--primary-color); cursor: pointer; }
+.print-option-hint { font-size: 0.8rem; color: var(--muted-color); margin-bottom: 12px; }
 
 /* ---------- Main layout ---------- */
 .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }

@@ -39,6 +39,23 @@
         </div>
     </div>
 
+    <!-- 打印模态窗口 -->
+    <div class="modal-overlay" id="printModalOverlay" hidden></div>
+    <div class="modal" id="printModal" role="dialog" aria-modal="true" hidden style="max-width:360px;">
+        <div class="modal-header">
+            <h3 data-i18n="printOptions"></h3>
+            <button class="close-modal" id="closePrintModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="upload-section" style="border-bottom:none;">
+            <label class="print-option">
+                <input type="checkbox" id="printThinkCheck" checked>
+                <span data-i18n="printExpandThink"></span>
+            </label>
+            <p class="print-option-hint" data-i18n="printExpandThinkHint"></p>
+            <button id="doPrintBtn" data-i18n="printNow"></button>
+        </div>
+    </div>
+
     <!-- 保存模态窗口 -->
     <div class="modal-overlay" id="saveModalOverlay" hidden></div>
     <div class="modal" id="saveModal" role="dialog" aria-modal="true" hidden style="max-width:400px;">
@@ -104,10 +121,6 @@
             <button id="printBtn" class="btn-failure" aria-label="Print">
                 <i class="fa-solid fa-print"></i> <span data-i18n="printConversations"></span>
             </button>
-            <label class="print-option" title="Expand thinking in print">
-                <input type="checkbox" id="printThinkCheck" checked>
-                <span data-i18n="printExpandThink"></span>
-            </label>
             <button id="resetBtn" class="btn-danger" aria-label="Reset">
                 <i class="fa-solid fa-xmark"></i> <span data-i18n="closeConversations"></span>
             </button>

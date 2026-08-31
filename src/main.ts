@@ -335,6 +335,52 @@ function printPage(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Print modal (expand-thinking option)
+// ---------------------------------------------------------------------------
+
+function openPrintModal(): void {
+  const cb = $('printThinkCheck') as HTMLInputElement;
+  cb.checked = localStorage.getItem('dscr-print-think') !== '0';
+  $('printModal').classList.add('active');
+  $('printModalOverlay').classList.add('active');
+}
+
+function closePrintModal(): void {
+  $('printModal').classList.remove('active');
+  $('printModalOverlay').classList.remove('active');
+}
+
+function doPrint(): void {
+  const expand = ($('printThinkCheck') as HTMLInputElement).checked;
+  localStorage.setItem('dscr-print-think', expand ? '1' : '0');
+  document.documentElement.classList.toggle('print-expand-think', expand);
+  closePrintModal();
+
+  // Force-open <details> for printing (CSS alone is unreliable in some
+  // browsers) and restore their previous state after the print dialog closes.
+  const opened: HTMLDetailsElement[] = [];
+  if (expand) {
+    document.querySelectorAll('details').forEach((d) => {
+      const el = d as HTMLDetailsElement;
+      if (!el.open) {
+        el.open = true;
+        opened.push(el);
+      }
+    });
+  }
+  window.addEventListener(
+    'afterprint',
+    () => {
+      opened.forEach((d) => {
+        d.open = false;
+      });
+    },
+    { once: true },
+  );
+  window.print();
+}
+
+// ---------------------------------------------------------------------------
 // Save handlers
 // ---------------------------------------------------------------------------
 
@@ -438,14 +484,10 @@ function bindEvents(): void {
   $('toggleSidebarBtn').addEventListener('click', toggleSidebar);
   $('toggleOutlineBtn').addEventListener('click', toggleOutline);
   $('collapseOutlineBtn').addEventListener('click', toggleOutline);
-  $('printBtn').addEventListener('click', printPage);
-  const printThinkCheck = $('printThinkCheck') as HTMLInputElement;
-  printThinkCheck.checked = localStorage.getItem('dscr-print-think') !== '0';
-  document.documentElement.classList.toggle('print-expand-think', printThinkCheck.checked);
-  printThinkCheck.addEventListener('change', () => {
-    document.documentElement.classList.toggle('print-expand-think', printThinkCheck.checked);
-    localStorage.setItem('dscr-print-think', printThinkCheck.checked ? '1' : '0');
-  });
+  $('printBtn').addEventListener('click', openPrintModal);
+  $('doPrintBtn').addEventListener('click', doPrint);
+  $('closePrintModal').addEventListener('click', closePrintModal);
+  $('printModalOverlay').addEventListener('click', closePrintModal);
   $('resetBtn').addEventListener('click', resetAll);
   $('batchSelectBtn').addEventListener('click', toggleBatchMode);
   $('batchInvertBtn').addEventListener('click', () => sidebarHandlers.onInvertSelection());
@@ -547,6 +589,8 @@ function init(): void {
   updateSortButtons();
   updateSidebarButton();
   updateOutlineButton();
+  // Apply the print preference up front so Ctrl+P honors it too
+  document.documentElement.classList.toggle('print-expand-think', localStorage.getItem('dscr-print-think') !== '0');
   bindEvents();
 
   const startDate = new Date('2023-11-29');
