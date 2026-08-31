@@ -1,0 +1,24 @@
+# Dependencies / build
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Scratch / reference (not for repo)
+_upstream_ref/
+
+# Test data
+conversations.json
+ExampleConversations.json.new
+
+# OS
+Thumbs.db
+.DS_Store
+
+# dev helper
+seed.html
+scripts/serve.mjs
+scripts/print-sim.mjs
+scripts/diag.mjs
