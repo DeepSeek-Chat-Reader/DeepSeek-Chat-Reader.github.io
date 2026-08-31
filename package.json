@@ -1,0 +1,28 @@
+{
+  "name": "deepseek-chat-reader",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "DeepSeek export conversation viewer (refactored: Vite + TypeScript, builds a single offline HTML)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/finalize.mjs",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "highlight.js": "^11.11.1",
+    "marked": "^15.0.7",
+    "mathjax": "^3.2.2",
+    "mermaid": "^11.4.1"
+  },
+  "devDependencies": {
+    "pdf-parse": "^1.1.1",
+    "playwright-core": "^1.62.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11",
+    "vite-plugin-singlefile": "^2.1.0",
+    "vitest": "^2.1.8"
+  }
+}

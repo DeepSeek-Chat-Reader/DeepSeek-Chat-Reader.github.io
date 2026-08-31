@@ -1,0 +1,116 @@
+/* ============ Print styles (fixes issue #1 + blank-page/breakage reports) ============
+ *
+ * Key fixes over the previous version:
+ *  1. Big blocks (.message/.fragment) are allowed to SPLIT across pages —
+ *     `page-break-inside: avoid` on a block taller than one page pushes the
+ *     whole block to the next page and leaves the current page blank.
+ *  2. Headers (title / REQUEST / THINK labels) use `break-after: avoid` so
+ *     they stay attached to their content instead of being orphaned.
+ *  3. Collapsed <details> (thinking / search blocks) are force-expanded so
+ *     their content actually prints (Chrome hides closed-details content).
+ *  4. Flex layouts are flattened to block so height calculation is sane.
+ *  5. Small atomic pieces (code blocks, rows, chips, diagrams) keep
+ *     break-inside: avoid.
+ *  6. orphans/widows keep paragraphs from leaving single lines on pages.
+ */
+@media print {
+  /* ---------- Force light palette (issue #1: dark-mode backgrounds) ---------- */
+  html[data-theme='dark'],
+  html[data-theme='dark'] body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .message, .fragment, .conversation-detail, .code-block {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  .message-content, .fragment,
+  .search-result, .file-chip, .fragment-body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .request-text, .message-header, .fragment-header { color: #000 !important; }
+  pre, code { background: #f5f5f5 !important; color: #333 !important; border: 1px solid #ddd !important; }
+  .code-header { background: #eee !important; color: #333 !important; border-bottom: 1px solid #ddd !important; }
+  .code-lang { color: #333 !important; }
+  a { color: #0000ee !important; }
+
+  /* ---------- Hide interactive chrome ---------- */
+  header, .sidebar, .resize-handle, .outline-sidebar,
+  .code-actions, .branch-navigation, .conversation-actions,
+  .conversation-header-actions, .model-tag, .tool-open-chip, .loading,
+  .fragment-divider {
+    display: none !important;
+  }
+
+  /* ---------- Flatten flex layouts (blank-page from height miscalc) ---------- */
+  body { display: block !important; height: auto; overflow: visible; }
+  .main-container { display: block !important; height: auto; overflow: visible; }
+  .content-area { display: block !important; overflow: visible; height: auto; }
+  .conversation-detail { padding: 0; overflow: visible; height: auto; }
+  .conversation-chain { display: block; }
+  .message { display: block; margin-bottom: 16px; }
+
+  /* ---------- Kill overflow clipping: containers with overflow (hidden/auto)
+     are treated as unsplittable by print engines, which pushes the whole
+     block to the next page and leaves blank regions. This was the root cause
+     of the residual blank pages and the blank space above code/diagrams. ---------- */
+  .message, .fragment, .message-content, .code-block, .mermaid,
+  pre, pre code, .search-list, .file-list, .conversation-chain {
+    overflow: visible !important;
+  }
+
+  /* ---------- Continuous flow: NO break-inside:avoid on content blocks ----------
+     Any avoid on a block that doesn't fit the remaining page space pushes the
+     whole block to the next page and leaves a blank gap (observed between
+     request/think, around mermaid, after code blocks and dividers). Everything
+     may split; only genuinely tiny atomic pieces keep avoid. */
+  .message, .fragment, .code-block, .mermaid, .math-display,
+  .think-block, .search-block, .search-list {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  /* Diagrams & math SVGs: keep WHOLE (a split SVG is worse than a small gap)
+     and cap their height so they fit one page in BOTH orientations
+     (A4 landscape usable height ≈ 186mm). .print-keep binds a heading to its
+     diagram/code (break-after:avoid on headings is unreliable in Chromium). */
+  .mermaid, .math-display, .print-keep {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .mermaid svg, .math-display svg {
+    max-width: 100%;
+    max-height: 155mm;
+    width: auto;
+    height: auto;
+  }
+
+  /* ---------- Keep labels/headers attached to their content ---------- */
+  .message-header, .fragment-header, .conversation-header,
+  .code-header,
+  h1, h2, h3, h4, h5, h6, summary {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* ---------- Avoid orphaned single lines ---------- */
+  p, li { orphans: 3; widows: 3; }
+
+  /* ---------- Tiny atomic pieces must not split ---------- */
+  .search-result, .file-chip, tr, th, td, .citation-link {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ---------- Expand collapsed <details> when requested (two options) ---------- */
+  html.print-expand-think details.think-block { display: block !important; }
+  html.print-expand-think details.think-block > summary { display: block; }
+  html.print-expand-think details.think-block:not([open]) > :not(summary) { display: block !important; }
+  html.print-expand-search details.search-block { display: block !important; }
+  html.print-expand-search details.search-block > summary { display: block; }
+  html.print-expand-search details.search-block:not([open]) > :not(summary) { display: block !important; }
+  html.print-expand-search .search-list { display: block; }
+}
