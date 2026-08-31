@@ -16,6 +16,7 @@ const zhCN: Dict = {
   lightMode: '浅色模式',
   saveOffline: '保存',
   printConversations: '打印',
+  printExpandThink: '打印展开思考',
   closeConversations: '关闭对话',
 
   uploadModalTitle: '上传或输入JSON内容',
@@ -115,6 +116,7 @@ const en: Dict = {
   lightMode: 'Light Mode',
   saveOffline: 'Save',
   printConversations: 'Print',
+  printExpandThink: 'Expand thinking on print',
   closeConversations: 'Close Conversations',
 
   uploadModalTitle: 'Upload or Input JSON Content',

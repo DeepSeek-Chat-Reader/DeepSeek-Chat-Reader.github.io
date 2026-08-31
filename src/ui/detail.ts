@@ -164,7 +164,7 @@ function buildOutline(root: HTMLElement, chain: HTMLElement): void {
     item.textContent = h.textContent ?? '';
     item.addEventListener('click', () => {
       h.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      root.querySelectorAll('.outline-item.active').forEach((e) => e.classList.remove('active'));
+      outlineEl.querySelectorAll('.outline-item.active').forEach((e) => e.classList.remove('active'));
       item.classList.add('active');
     });
     outlineEl.appendChild(item);

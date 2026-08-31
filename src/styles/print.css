@@ -66,15 +66,16 @@
   p, li { orphans: 3; widows: 3; }
 
   /* ---------- Small atomic pieces must not split ---------- */
-  .code-block, .search-result, .file-chip, .mermaid,
-  tr, th, td, .citation-link {
+  .search-result, .file-chip, tr, th, td, .citation-link {
     page-break-inside: avoid;
     break-inside: avoid;
   }
+  /* Code blocks and diagrams may split across pages (between lines for <pre>)
+     so they don't leave large blank regions when they don't fit the page. */
 
-  /* ---------- Expand collapsed <details> (THINK / SEARCH) for printing ---------- */
-  details { display: block !important; }
-  details > summary { display: block; }
-  details > :not(summary) { display: block !important; }
-  .search-list { display: block; }
+  /* ---------- Expand collapsed <details> (THINK / SEARCH) when requested ---------- */
+  html.print-expand-think details { display: block !important; }
+  html.print-expand-think details > summary { display: block; }
+  html.print-expand-think details > :not(summary) { display: block !important; }
+  html.print-expand-think .search-list { display: block; }
 }

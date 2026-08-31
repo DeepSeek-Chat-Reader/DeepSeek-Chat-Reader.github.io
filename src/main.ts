@@ -439,6 +439,13 @@ function bindEvents(): void {
   $('toggleOutlineBtn').addEventListener('click', toggleOutline);
   $('collapseOutlineBtn').addEventListener('click', toggleOutline);
   $('printBtn').addEventListener('click', printPage);
+  const printThinkCheck = $('printThinkCheck') as HTMLInputElement;
+  printThinkCheck.checked = localStorage.getItem('dscr-print-think') !== '0';
+  document.documentElement.classList.toggle('print-expand-think', printThinkCheck.checked);
+  printThinkCheck.addEventListener('change', () => {
+    document.documentElement.classList.toggle('print-expand-think', printThinkCheck.checked);
+    localStorage.setItem('dscr-print-think', printThinkCheck.checked ? '1' : '0');
+  });
   $('resetBtn').addEventListener('click', resetAll);
   $('batchSelectBtn').addEventListener('click', toggleBatchMode);
   $('batchInvertBtn').addEventListener('click', () => sidebarHandlers.onInvertSelection());
