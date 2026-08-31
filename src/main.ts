@@ -138,7 +138,6 @@ function refreshList(): void {
   const count = $('conversationCount');
   stats.textContent = t('searchResults', { count: filtered.length });
   count.textContent = t('conversationCount', { count: filtered.length });
-  updateBatchUI();
 }
 
 const sidebarHandlers: SidebarHandlers = {
@@ -254,17 +253,18 @@ function escapeText(s: string): string {
 // Batch UI
 // ---------------------------------------------------------------------------
 
-function updateBatchUI(): void {
-  const actions = $('batchActions');
-  const selectAll = $('selectAllCheckbox') as HTMLInputElement;
-  actions.hidden = !state.batchMode;
-  selectAll.checked = state.selected.size > 0 && state.selected.size === state.conversations.length;
-  $('batchSelectBtn').classList.toggle('active', state.batchMode);
+function enterBatchMode(): void {
+  state.batchMode = true;
+  $('batchSelectBtn').hidden = true;
+  $('batchActions').hidden = false;
+  refreshList();
 }
 
-function toggleBatchMode(): void {
-  state.batchMode = !state.batchMode;
-  if (!state.batchMode) state.selected = new Set();
+function exitBatchMode(): void {
+  state.batchMode = false;
+  state.selected = new Set();
+  $('batchSelectBtn').hidden = false;
+  $('batchActions').hidden = true;
   refreshList();
 }
 
@@ -293,19 +293,21 @@ function closeSaveModal(): void {
 // Header / misc
 // ---------------------------------------------------------------------------
 
+let sidebarPinned = true;
+let sidebarHideTimer: number | undefined;
+let outlinePinned = false;
+let outlineHideTimer: number | undefined;
+
 function toggleSidebar(): void {
-  $('sidebar').classList.toggle('collapsed');
-  $('resizeHandle').classList.toggle('hidden');
+  sidebarPinned = !sidebarPinned;
+  $('sidebar').classList.toggle('collapsed', !sidebarPinned);
+  $('resizeHandle').classList.toggle('hidden', !sidebarPinned);
   updateSidebarButton();
 }
 function updateSidebarButton(): void {
   const btn = $('toggleSidebarBtn');
-  const collapsed = $('sidebar').classList.contains('collapsed');
-  btn.innerHTML = `<i class="fa-solid fa-list"></i> <span>${escapeText(collapsed ? t('toggleSidebar') : t('hideSidebar'))}</span>`;
+  btn.innerHTML = `<i class="fa-solid fa-list"></i> <span>${escapeText(sidebarPinned ? t('hideSidebar') : t('toggleSidebar'))}</span>`;
 }
-
-let outlinePinned = false;
-let outlineHideTimer: number | undefined;
 
 function toggleOutline(): void {
   outlinePinned = !outlinePinned;
@@ -317,21 +319,43 @@ function updateOutlineButton(): void {
   $('toggleOutlineBtn').innerHTML = `<i class="fa-solid fa-list-ol"></i> <span>${escapeText(outlinePinned ? t('collapseOutline') : t('outline'))}</span>`;
 }
 
-/** Hover the right-edge ribbon to peek the outline; button pins it. */
-function bindOutlineRibbon(): void {
-  const ribbon = $('outlineRibbon');
-  const sidebar = $('outlineSidebar');
-  ribbon.addEventListener('mouseenter', () => {
-    window.clearTimeout(outlineHideTimer);
+/** Hover the left/right edge ribbons to peek sidebar/outline (toggleable in settings). */
+function bindEdgeRibbons(): void {
+  const revealEnabled = () => localStorage.getItem('dscr-edge-reveal') !== '0';
+
+  // Left ribbon -> sidebar
+  const sidebar = $('sidebar');
+  const sRibbon = $('sidebarRibbon');
+  sRibbon.addEventListener('mouseenter', () => {
+    if (!revealEnabled()) return;
+    window.clearTimeout(sidebarHideTimer);
     sidebar.classList.remove('collapsed');
+    $('resizeHandle').classList.remove('hidden');
   });
-  sidebar.addEventListener('mouseenter', () => {
-    window.clearTimeout(outlineHideTimer);
-  });
+  sidebar.addEventListener('mouseenter', () => window.clearTimeout(sidebarHideTimer));
   sidebar.addEventListener('mouseleave', () => {
-    if (outlinePinned) return;
+    if (sidebarPinned || !revealEnabled()) return;
+    sidebarHideTimer = window.setTimeout(() => {
+      if (!sidebarPinned) {
+        sidebar.classList.add('collapsed');
+        $('resizeHandle').classList.add('hidden');
+      }
+    }, 250);
+  });
+
+  // Right ribbon -> outline
+  const ribbon = $('outlineRibbon');
+  const outlineSidebar = $('outlineSidebar');
+  ribbon.addEventListener('mouseenter', () => {
+    if (!revealEnabled()) return;
+    window.clearTimeout(outlineHideTimer);
+    outlineSidebar.classList.remove('collapsed');
+  });
+  outlineSidebar.addEventListener('mouseenter', () => window.clearTimeout(outlineHideTimer));
+  outlineSidebar.addEventListener('mouseleave', () => {
+    if (outlinePinned || !revealEnabled()) return;
     outlineHideTimer = window.setTimeout(() => {
-      if (!outlinePinned) sidebar.classList.add('collapsed');
+      if (!outlinePinned) outlineSidebar.classList.add('collapsed');
     }, 250);
   });
 }
@@ -512,19 +536,34 @@ function bindEvents(): void {
   $('toggleSidebarBtn').addEventListener('click', toggleSidebar);
   $('toggleOutlineBtn').addEventListener('click', toggleOutline);
   $('collapseOutlineBtn').addEventListener('click', toggleOutline);
-  bindOutlineRibbon();
+  bindEdgeRibbons();
   $('printBtn').addEventListener('click', openPrintModal);
   $('doPrintBtn').addEventListener('click', doPrint);
   $('closePrintModal').addEventListener('click', closePrintModal);
   $('printModalOverlay').addEventListener('click', closePrintModal);
   $('resetBtn').addEventListener('click', resetAll);
-  $('batchSelectBtn').addEventListener('click', toggleBatchMode);
+  $('batchSelectBtn').addEventListener('click', enterBatchMode);
+  $('batchCancelBtn').addEventListener('click', exitBatchMode);
+  $('batchSelectAllBtn').addEventListener('click', () => sidebarHandlers.onSelectAll());
   $('batchInvertBtn').addEventListener('click', () => sidebarHandlers.onInvertSelection());
   $('batchDeleteBtn').addEventListener('click', () => sidebarHandlers.onBatchDelete());
-  $('selectAllCheckbox').addEventListener('change', (e) => {
-    if ((e.target as HTMLInputElement).checked) sidebarHandlers.onSelectAll();
-    else state.selected = new Set();
-    refreshList();
+
+  // Settings
+  $('settingsBtn').addEventListener('click', () => {
+    ($('edgeRevealCheck') as HTMLInputElement).checked = localStorage.getItem('dscr-edge-reveal') !== '0';
+    $('settingsModal').classList.add('active');
+    $('settingsModalOverlay').classList.add('active');
+  });
+  $('closeSettingsModal').addEventListener('click', () => {
+    $('settingsModal').classList.remove('active');
+    $('settingsModalOverlay').classList.remove('active');
+  });
+  $('settingsModalOverlay').addEventListener('click', () => {
+    $('settingsModal').classList.remove('active');
+    $('settingsModalOverlay').classList.remove('active');
+  });
+  $('edgeRevealCheck').addEventListener('change', (e) => {
+    localStorage.setItem('dscr-edge-reveal', (e.target as HTMLInputElement).checked ? '1' : '0');
   });
 
   // Language

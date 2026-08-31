@@ -64,21 +64,52 @@ export function renderMessage(node: Node): HTMLElement {
   const content = document.createElement('div');
   content.className = 'message-content';
   let first = true;
+  let searchOffset = 0;
+  let toolOpenCount = 0;
+  const flushToolOpen = () => {
+    if (toolOpenCount > 0) {
+      const chip = renderToolOpenChip(toolOpenCount);
+      if (first) first = false;
+      else content.appendChild(divider());
+      content.appendChild(chip);
+      toolOpenCount = 0;
+    }
+  };
   for (const f of msg.fragments) {
-    const fragEl = renderFragment(f, node);
+    if (isToolOpen(f)) {
+      toolOpenCount++;
+      continue;
+    }
+    flushToolOpen();
+    const fragEl = renderFragment(f, node, searchOffset);
+    if (f.kind === 'search') searchOffset += f.results.length;
     if (!first) {
-      const divider = document.createElement('div');
-      divider.className = 'fragment-divider';
-      content.appendChild(divider);
+      content.appendChild(divider());
     }
     first = false;
     content.appendChild(fragEl);
   }
+  flushToolOpen();
   el.appendChild(content);
   return el;
 }
 
-function renderFragment(f: ParsedFragment, node: Node): HTMLElement {
+function divider(): HTMLElement {
+  const d = document.createElement('div');
+  d.className = 'fragment-divider';
+  return d;
+}
+
+/** One chip summarizing consecutive "browsed page" tool calls. */
+function renderToolOpenChip(count: number): HTMLElement {
+  const chip = document.createElement('span');
+  chip.className = 'tool-open-chip';
+  const label = count > 1 ? t('browsedPagesCount', { count }) : t('browsedPages');
+  chip.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHtml(label)}`;
+  return chip;
+}
+
+function renderFragment(f: ParsedFragment, node: Node, searchOffset = 0): HTMLElement {
   const frag = document.createElement('div');
   frag.className = `fragment ${f.type.toLowerCase()}`;
 
@@ -140,19 +171,19 @@ function renderFragment(f: ParsedFragment, node: Node): HTMLElement {
     details.appendChild(summary);
     const list = document.createElement('div');
     list.className = 'search-list';
-    for (const r of f.results) {
+    // Number results by their cumulative position so the number matches the
+    // citation-link badge ([reference:i] -> i+1, [citation:i] -> i).
+    f.results.forEach((r, i) => {
+      const num = searchOffset + i + 1;
       const item = document.createElement('div');
       item.className = 'search-result';
-      item.innerHTML = `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.title || r.url)}</a>`;
+      item.innerHTML = `<span class="search-result-index">${num}</span><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.title || r.url)}</a>`;
       list.appendChild(item);
-    }
+    });
     details.appendChild(list);
     body.appendChild(details);
   } else if (isToolOpen(f)) {
-    const chip = document.createElement('span');
-    chip.className = 'tool-open-chip';
-    chip.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHtml(t('browsedPages'))}`;
-    body.appendChild(chip);
+    // handled by the grouping in renderMessage; never reached here
   } else {
     // Unknown fragment type: dump raw JSON for debugging
     const pre = document.createElement('pre');

@@ -80,6 +80,7 @@ const zhCN: Dict = {
   search: '搜索',
   fileAttachments: '附件',
   browsedPages: '浏览页面',
+  browsedPagesCount: '浏览页面 {count} 次',
   searchResultsTitle: '搜索结果',
   continueGenerating: '（内容未完成）',
 
@@ -99,7 +100,11 @@ const zhCN: Dict = {
   selectAll: '全选',
   invertSelection: '反选',
   deleteSelected: '删除选中',
-  cancelBatch: '取消批量',
+  cancelBatch: '取消',
+
+  settings: '设置',
+  edgeReveal: '鼠标贴边自动弹出侧栏/大纲',
+  edgeRevealHint: '关闭后，侧栏和大纲只能通过按钮手动开关。',
 
   outline: '大纲',
   collapseOutline: '收起',
@@ -184,6 +189,7 @@ const en: Dict = {
   search: 'Search',
   fileAttachments: 'Attachments',
   browsedPages: 'Browsed pages',
+  browsedPagesCount: 'Browsed {count} pages',
   searchResultsTitle: 'Search results',
   continueGenerating: '(Incomplete)',
 
@@ -203,7 +209,11 @@ const en: Dict = {
   selectAll: 'Select All',
   invertSelection: 'Invert',
   deleteSelected: 'Delete Selected',
-  cancelBatch: 'Cancel Batch',
+  cancelBatch: 'Cancel',
+
+  settings: 'Settings',
+  edgeReveal: 'Reveal sidebar & outline on edge hover',
+  edgeRevealHint: 'When off, sidebar and outline only open via their buttons.',
 
   outline: 'Outline',
   collapseOutline: 'Collapse',

@@ -60,6 +60,22 @@
         </div>
     </div>
 
+    <!-- 设置模态窗口 -->
+    <div class="modal-overlay" id="settingsModalOverlay" hidden></div>
+    <div class="modal" id="settingsModal" role="dialog" aria-modal="true" hidden style="max-width:360px;">
+        <div class="modal-header">
+            <h3 data-i18n="settings"></h3>
+            <button class="close-modal" id="closeSettingsModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="upload-section" style="border-bottom:none;">
+            <label class="print-option">
+                <input type="checkbox" id="edgeRevealCheck" checked>
+                <span data-i18n="edgeReveal"></span>
+            </label>
+            <p class="print-option-hint" data-i18n="edgeRevealHint"></p>
+        </div>
+    </div>
+
     <!-- 保存模态窗口 -->
     <div class="modal-overlay" id="saveModalOverlay" hidden></div>
     <div class="modal" id="saveModal" role="dialog" aria-modal="true" hidden style="max-width:400px;">
@@ -116,6 +132,9 @@
             <button id="toggleOutlineBtn" aria-label="Toggle Outline">
                 <i class="fa-solid fa-list-ol"></i> <span>大纲</span>
             </button>
+            <button id="settingsBtn" aria-label="Settings">
+                <i class="fa-solid fa-gear"></i> <span data-i18n="settings"></span>
+            </button>
             <button id="themeToggle" aria-label="Toggle Theme">
                 <i class="fa-solid fa-moon"></i> <span>深色模式</span>
             </button>
@@ -132,12 +151,14 @@
     </header>
 
     <div class="main-container">
+        <div class="sidebar-ribbon" id="sidebarRibbon" title="对话列表" aria-label="Conversation list"></div>
         <aside class="sidebar" id="sidebar">
             <div class="conversation-list" id="conversationList">
                 <div class="batch-actions" id="batchActions" hidden>
-                    <input type="checkbox" id="selectAllCheckbox" class="batch-checkbox" aria-label="Select all">
+                    <button class="batch-select-all" id="batchSelectAllBtn" data-i18n="selectAll"></button>
                     <button class="batch-invert" id="batchInvertBtn" data-i18n="invertSelection"></button>
                     <button class="batch-delete btn-danger" id="batchDeleteBtn" data-i18n="deleteSelected"></button>
+                    <button class="batch-cancel" id="batchCancelBtn" data-i18n="cancelBatch"></button>
                 </div>
                 <div class="search-filters">
                     <div class="search-box">

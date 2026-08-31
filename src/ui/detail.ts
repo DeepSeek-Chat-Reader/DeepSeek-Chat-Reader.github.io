@@ -211,7 +211,8 @@ function renderBranchNav(
 /**
  * Turn-grouped outline: each turn (user input) is a level-1 item with an
  * optional "current/total" branch badge; markdown headings inside that turn's
- * replies are indented under it. Clicking jumps to the target.
+ * replies are indented under it. Clicking the turn label jumps to it; the
+ * caret toggles collapsing the turn's headings.
  */
 function buildOutline(turns: OutlineTurn[]): void {
   const outlineEl = document.getElementById('outlineContent');
@@ -220,20 +221,38 @@ function buildOutline(turns: OutlineTurn[]): void {
 
   let headingIdx = 0;
   for (const turn of turns) {
-    // Turn item (level 1)
+    const group = document.createElement('div');
+    group.className = 'outline-turn';
+
     const turnItem = document.createElement('div');
     turnItem.className = 'outline-item turn';
-    turnItem.innerHTML = `<span class="outline-turn-label">${escapeHtml(turn.label || '')}</span>${
-      turn.badge ? `<span class="outline-badge">${escapeHtml(turn.badge)}</span>` : ''
-    }`;
+    turnItem.innerHTML = `
+      <span class="outline-caret" title="折叠/展开">▾</span>
+      <span class="outline-turn-label"></span>
+      ${turn.badge ? `<span class="outline-badge"></span>` : ''}
+    `;
+    (turnItem.querySelector('.outline-turn-label') as HTMLElement).textContent = turn.label;
+    if (turn.badge) (turnItem.querySelector('.outline-badge') as HTMLElement).textContent = turn.badge;
     turnItem.title = turn.label;
-    turnItem.addEventListener('click', () => {
+    turnItem.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.outline-caret')) return;
       if (turn.targetEl) {
         turn.targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       setActive(outlineEl, turnItem);
     });
-    outlineEl.appendChild(turnItem);
+    group.appendChild(turnItem);
+
+    const headingsBox = document.createElement('div');
+    headingsBox.className = 'outline-headings';
+    group.appendChild(headingsBox);
+
+    const caret = turnItem.querySelector('.outline-caret') as HTMLElement;
+    caret.addEventListener('click', (e) => {
+      e.stopPropagation();
+      group.classList.toggle('collapsed');
+      caret.textContent = group.classList.contains('collapsed') ? '▸' : '▾';
+    });
 
     // Headings under this turn
     for (const h of turn.headings) {
@@ -248,8 +267,9 @@ function buildOutline(turns: OutlineTurn[]): void {
         h.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setActive(outlineEl, item);
       });
-      outlineEl.appendChild(item);
+      headingsBox.appendChild(item);
     }
+    outlineEl.appendChild(group);
   }
 }
 

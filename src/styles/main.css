@@ -234,6 +234,57 @@ header {
   background: rgba(52, 152, 219, 0.55);
 }
 
+/* Left-edge blue ribbon that reveals the conversation sidebar on hover */
+.sidebar-ribbon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: transparent;
+  cursor: pointer;
+  z-index: 14;
+  transition: background-color 0.2s;
+}
+.sidebar-ribbon:hover {
+  background: rgba(52, 152, 219, 0.55);
+}
+
+/* Turn collapse in the outline */
+.outline-turn .outline-headings { display: block; }
+.outline-turn.collapsed .outline-headings { display: none; }
+.outline-caret {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  color: var(--muted-color);
+  cursor: pointer;
+  user-select: none;
+}
+.outline-caret:hover { color: var(--primary-color); }
+
+/* Numbered search results (cross-reference with citation-link badges) */
+.search-result-index {
+  display: inline-block;
+  min-width: 1.4em;
+  text-align: center;
+  margin-right: 6px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  color: #fff;
+  background: var(--primary-color);
+}
+
+/* Bigger inline title editor in the detail header */
+.conversation-detail-title .edit-input {
+  width: 100%;
+  max-width: 100%;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 8px 12px;
+}
+
 /* ---------- Conversation list ---------- */
 .conversation-list { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .conversation-list-header {

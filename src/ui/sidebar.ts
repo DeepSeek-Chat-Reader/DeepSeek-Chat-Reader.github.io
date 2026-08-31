@@ -118,6 +118,8 @@ export function renderConversationList(
         return;
       }
       const target = e.target as HTMLElement;
+      // clicking inside the inline title editor must not open the conversation
+      if (target.closest('.edit-input')) return;
       if (target.closest('.edit-conversation-btn')) {
         startInlineEdit(item.querySelector('.conversation-title') as HTMLElement, c, handlers);
         return;
@@ -127,6 +129,13 @@ export function renderConversationList(
         return;
       }
       handlers.onOpen(c);
+    });
+
+    // Double-click the title to edit it
+    const titleEl = item.querySelector('.conversation-title') as HTMLElement;
+    titleEl.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      if (!batchMode) startInlineEdit(titleEl, c, handlers);
     });
     frag.appendChild(item);
   }
