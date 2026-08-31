@@ -62,29 +62,25 @@
     overflow: visible !important;
   }
 
-  /* ---------- Big blocks MAY split across pages ---------- */
-  /* Messages stay whole unless oversized; fragments are allowed to split so a
-     tall block (e.g. a long search list) never leaves a blank gap before the
-     next fragment. Small atomic pieces below stay whole. */
-  .message {
-    page-break-inside: avoid;
-    break-inside: avoid;
+  /* ---------- Continuous flow: NO break-inside:avoid on content blocks ----------
+     Any avoid on a block that doesn't fit the remaining page space pushes the
+     whole block to the next page and leaves a blank gap (observed between
+     request/think, around mermaid, after code blocks and dividers). Everything
+     may split; only genuinely tiny atomic pieces keep avoid. */
+  .message, .fragment, .code-block, .mermaid, .math-display,
+  .think-block, .search-block, .search-list {
+    page-break-inside: auto;
+    break-inside: auto;
   }
-  .fragment { page-break-inside: auto; break-inside: auto; }
 
-  /* Diagrams & math SVGs: keep whole AND ensure they fit one page so they
-     are never pushed to a fresh page leaving blank regions behind. */
-  .mermaid, .math-display {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
+  /* Diagrams & math SVGs: cap their size so they fit one page; even if an
+     oversized one must split, no blank gap is left behind. */
   .mermaid svg, .math-display svg {
     max-width: 100%;
     max-height: 220mm;
     width: auto;
     height: auto;
   }
-  .code-block { page-break-inside: avoid; break-inside: avoid; }
 
   /* ---------- Keep labels/headers attached to their content ---------- */
   .message-header, .fragment-header, .conversation-header,
@@ -96,13 +92,11 @@
   /* ---------- Avoid orphaned single lines ---------- */
   p, li { orphans: 3; widows: 3; }
 
-  /* ---------- Small atomic pieces must not split ---------- */
+  /* ---------- Tiny atomic pieces must not split ---------- */
   .search-result, .file-chip, tr, th, td, .citation-link {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  /* Code blocks and diagrams may split across pages (between lines for <pre>)
-     so they don't leave large blank regions when they don't fit the page. */
 
   /* ---------- Expand collapsed <details> when requested (two options) ---------- */
   html.print-expand-think details.think-block { display: block !important; }
