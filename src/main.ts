@@ -79,9 +79,14 @@ function loadData(conversations: Conversation[]): void {
   state.selected = new Set();
   if (conversations.length > 0) {
     const sorted = filterConversations(conversations, { ...state.filters, search: '' });
-    if (sorted.length > 0) openConversation(sorted[0]);
+    if (sorted.length > 0) {
+      // select the first conversation for the list info panel without opening it
+      state.currentId = sorted[0].id;
+      updateInfoPanel(sorted[0]);
+    }
   }
   refreshList();
+  setView('list');
   saveToStorage(conversations);
   hideLoading();
   closeUploadModal();
@@ -144,7 +149,10 @@ const sidebarHandlers: SidebarHandlers = {
   onOpen: openConversation,
   onEditTitle: (c, title) => {
     c.title = title;
-    if (state.currentId === c.id) renderCurrent();
+    if (state.currentId === c.id) {
+      renderCurrent();
+      updateInfoPanel(c);
+    }
     refreshList();
     saveToStorage(state.conversations);
   },
@@ -157,6 +165,7 @@ const sidebarHandlers: SidebarHandlers = {
       renderEmptyDetail();
     }
     refreshList();
+    updateInfoPanel(findSelectedConversation());
     saveToStorage(state.conversations);
   },
   onToggleSelect: (id) => {
@@ -189,6 +198,7 @@ const sidebarHandlers: SidebarHandlers = {
     }
     state.selected = new Set();
     refreshList();
+    updateInfoPanel(findSelectedConversation());
     saveToStorage(state.conversations);
   },
 };
@@ -201,10 +211,79 @@ function openConversation(c: Conversation): void {
   state.current = c;
   state.currentId = c.id;
   state.branchPath = new Map();
+  updateInfoPanel(c);
   renderCurrent();
   refreshList();
+  clearContentSearch();
   $('contentArea').classList.remove('collapsed');
+  setView('content');
   document.documentElement.scrollTop = 0;
+}
+
+/** Conversation info panel shown on the list page (wide screens). */
+function updateInfoPanel(c: Conversation | null): void {
+  const panel = $('listInfoPanel');
+  if (!c) {
+    panel.innerHTML = `<div class="list-info-empty">${escapeText(t('selectConversation'))}</div>`;
+    return;
+  }
+  let turns = 0;
+  let messages = 0;
+  let chars = 0;
+  for (const n of c.nodes.values()) {
+    if (!n.message) continue;
+    messages++;
+    const types = n.message.fragments.map((f) => f.type);
+    if (types.includes('REQUEST') || types.includes('FILE')) turns++;
+    for (const f of n.message.fragments) {
+      if (f.kind === 'text') chars += f.content.length;
+    }
+  }
+  panel.innerHTML = `
+    <div class="list-info-title" id="listInfoTitle">${escapeText(c.title || t('noTitle'))}</div>
+    <div class="list-info-meta">
+      <span><b>${escapeText(t('startTime'))}</b>${escapeText(formatDateTime(c.insertedAt))}</span>
+      <span><b>${escapeText(t('endTime'))}</b>${escapeText(formatDateTime(c.updatedAt))}</span>
+      <span><b>${escapeText(t('turnCount'))}</b>${turns}</span>
+      <span><b>${escapeText(t('messageCount'))}</b>${messages}</span>
+      <span><b>${escapeText(t('charCount'))}</b>${chars.toLocaleString()}</span>
+    </div>
+    <div class="list-info-actions">
+      <button id="listInfoEditBtn" class="btn-ghost"><i class="fa-regular fa-pen-to-square"></i> ${escapeText(t('editTitle'))}</button>
+      <button id="listInfoOpenBtn"><i class="fa-regular fa-folder-open"></i> ${escapeText(t('openConversation'))}</button>
+      <button id="listInfoDeleteBtn" class="btn-danger"><i class="fa-regular fa-trash-can"></i> ${escapeText(t('deleteConversation'))}</button>
+    </div>
+  `;
+  const titleEl = panel.querySelector('#listInfoTitle') as HTMLElement;
+  titleEl.addEventListener('dblclick', () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'edit-input';
+    input.value = c.title || '';
+    titleEl.innerHTML = '';
+    titleEl.appendChild(input);
+    input.focus();
+    const finish = (save: boolean) => {
+      if (save) {
+        sidebarHandlers.onEditTitle(c, input.value.trim());
+      } else {
+        titleEl.textContent = c.title || t('noTitle');
+      }
+    };
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      else if (e.key === 'Escape') {
+        finish(false);
+        input.blur();
+      }
+    });
+  });
+  panel.querySelector('#listInfoEditBtn')?.addEventListener('click', () => {
+    titleEl.dispatchEvent(new MouseEvent('dblclick'));
+  });
+  panel.querySelector('#listInfoOpenBtn')?.addEventListener('click', () => openConversation(c));
+  panel.querySelector('#listInfoDeleteBtn')?.addEventListener('click', () => sidebarHandlers.onDelete(c));
 }
 
 function renderCurrent(): void {
@@ -253,17 +332,25 @@ function escapeText(s: string): string {
 // Batch UI
 // ---------------------------------------------------------------------------
 
+function setBatchButtons(): void {
+  $('batchSelectBtn').hidden = state.batchMode;
+  $('batchSelectAllBtn').hidden = !state.batchMode;
+  $('batchInvertBtn').hidden = !state.batchMode;
+  $('batchDeleteBtn').hidden = !state.batchMode;
+  $('batchCancelBtn').hidden = !state.batchMode;
+}
+
 function enterBatchMode(): void {
   state.batchMode = true;
-  $('batchSelectBtn').hidden = true;
   $('batchActions').hidden = false;
+  setBatchButtons();
   refreshList();
 }
 
 function exitBatchMode(): void {
   state.batchMode = false;
   state.selected = new Set();
-  $('batchSelectBtn').hidden = false;
+  setBatchButtons();
   $('batchActions').hidden = true;
   refreshList();
 }
@@ -290,23 +377,25 @@ function closeSaveModal(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Header / misc
+// Views (two-page layout: list page / reading page)
 // ---------------------------------------------------------------------------
 
-let sidebarPinned = true;
-let sidebarHideTimer: number | undefined;
+let currentView: 'list' | 'content' = 'list';
 let outlinePinned = false;
 let outlineHideTimer: number | undefined;
 
-function toggleSidebar(): void {
-  sidebarPinned = !sidebarPinned;
-  $('sidebar').classList.toggle('collapsed', !sidebarPinned);
-  $('resizeHandle').classList.toggle('hidden', !sidebarPinned);
-  updateSidebarButton();
+function setView(view: 'list' | 'content'): void {
+  currentView = view;
+  document.body.classList.toggle('view-list', view === 'list');
+  document.body.classList.toggle('view-content', view === 'content');
+  document.body.classList.remove('peek-list');
+  updateViewButtons();
+  if (view === 'content') clearContentSearch();
 }
-function updateSidebarButton(): void {
-  const btn = $('toggleSidebarBtn');
-  btn.innerHTML = `<i class="fa-solid fa-list"></i> <span>${escapeText(sidebarPinned ? t('hideSidebar') : t('toggleSidebar'))}</span>`;
+
+function updateViewButtons(): void {
+  $('viewListBtn').classList.toggle('active', currentView === 'list');
+  $('viewContentBtn').classList.toggle('active', currentView === 'content');
 }
 
 function toggleOutline(): void {
@@ -319,28 +408,20 @@ function updateOutlineButton(): void {
   $('toggleOutlineBtn').innerHTML = `<i class="fa-solid fa-list-ol"></i> <span>${escapeText(outlinePinned ? t('collapseOutline') : t('outline'))}</span>`;
 }
 
-/** Hover the left/right edge ribbons to peek sidebar/outline (toggleable in settings). */
+/** Hover the left/right edge ribbons to peek list/outline (toggleable in settings). */
 function bindEdgeRibbons(): void {
   const revealEnabled = () => localStorage.getItem('dscr-edge-reveal') !== '0';
 
-  // Left ribbon -> sidebar
-  const sidebar = $('sidebar');
+  // Left ribbon: peek the list from the reading view (wide screens)
   const sRibbon = $('sidebarRibbon');
+  const sidebar = $('sidebar');
   sRibbon.addEventListener('mouseenter', () => {
-    if (!revealEnabled()) return;
-    window.clearTimeout(sidebarHideTimer);
-    sidebar.classList.remove('collapsed');
-    $('resizeHandle').classList.remove('hidden');
+    if (!revealEnabled() || currentView !== 'content') return;
+    document.body.classList.add('peek-list');
   });
-  sidebar.addEventListener('mouseenter', () => window.clearTimeout(sidebarHideTimer));
   sidebar.addEventListener('mouseleave', () => {
-    if (sidebarPinned || !revealEnabled()) return;
-    sidebarHideTimer = window.setTimeout(() => {
-      if (!sidebarPinned) {
-        sidebar.classList.add('collapsed');
-        $('resizeHandle').classList.add('hidden');
-      }
-    }, 250);
+    if (currentView !== 'content') return;
+    document.body.classList.remove('peek-list');
   });
 
   // Right ribbon -> outline
@@ -533,7 +614,6 @@ function bindEvents(): void {
   $('themeToggle').addEventListener('click', () => {
     toggleTheme();
   });
-  $('toggleSidebarBtn').addEventListener('click', toggleSidebar);
   $('toggleOutlineBtn').addEventListener('click', toggleOutline);
   $('collapseOutlineBtn').addEventListener('click', toggleOutline);
   bindEdgeRibbons();
@@ -566,19 +646,55 @@ function bindEvents(): void {
     localStorage.setItem('dscr-edge-reveal', (e.target as HTMLInputElement).checked ? '1' : '0');
   });
 
-  // Language
-  const langSelect = $('languageSelect') as HTMLSelectElement;
-  langSelect.addEventListener('change', () => {
-    const lang = langSelect.value;
+  // Language (button + modal)
+  const applyLang = (lang: string) => {
     document.documentElement.setAttribute('lang', lang);
     localStorage.setItem('dscr-language', lang);
     setLanguage(lang);
     applyTranslations();
     updateThemeButton();
-    updateSidebarButton();
     updateOutlineButton();
+    updateViewButtons();
     renderCurrent();
     refreshList();
+    updateInfoPanel(state.current ?? findSelectedConversation());
+    $('languageModal').classList.remove('active');
+    $('languageModalOverlay').classList.remove('active');
+  };
+  $('languageBtn').addEventListener('click', () => {
+    $('languageModal').classList.add('active');
+    $('languageModalOverlay').classList.add('active');
+  });
+  $('closeLanguageModal').addEventListener('click', () => {
+    $('languageModal').classList.remove('active');
+    $('languageModalOverlay').classList.remove('active');
+  });
+  $('languageModalOverlay').addEventListener('click', () => {
+    $('languageModal').classList.remove('active');
+    $('languageModalOverlay').classList.remove('active');
+  });
+  $('langZhBtn').addEventListener('click', () => applyLang('zh-CN'));
+  $('langEnBtn').addEventListener('click', () => applyLang('en'));
+
+  // View switching (list page / reading page)
+  $('viewListBtn').addEventListener('click', () => setView('list'));
+  $('viewContentBtn').addEventListener('click', () => {
+    if (state.current) setView('content');
+  });
+
+  // Filters collapse (list page)
+  $('filterToggle').addEventListener('click', () => {
+    $('searchFilters').classList.toggle('collapsed');
+  });
+
+  // In-conversation search (reading view, narrow screens)
+  const mobileSearch = $('mobileSearchInput') as HTMLInputElement;
+  let mobileSearchTimer: number | undefined;
+  mobileSearch.addEventListener('input', () => {
+    window.clearTimeout(mobileSearchTimer);
+    mobileSearchTimer = window.setTimeout(() => {
+      highlightInContent(mobileSearch.value.trim());
+    }, 200);
   });
 
   // Filters
@@ -614,27 +730,63 @@ function bindEvents(): void {
     refreshList();
   });
   ($('defaultBranchDisplay') as HTMLSelectElement).addEventListener('change', () => renderCurrent());
+}
 
-  // Resize handle
-  const resizeHandle = $('resizeHandle');
-  let resizing = false;
-  resizeHandle.addEventListener('mousedown', (e) => {
-    resizing = true;
-    document.body.style.cursor = 'col-resize';
-    e.preventDefault();
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (!resizing) return;
-    const rect = document.querySelector('.main-container')!.getBoundingClientRect();
-    const w = e.clientX - rect.left;
-    if (w > 200 && w < rect.width * 0.7) {
-      document.documentElement.style.setProperty('--sidebar-width', `${w}px`);
+/** find the conversation currently selected for the info panel */
+function findSelectedConversation(): Conversation | null {
+  if (state.current) return state.current;
+  return state.conversations.find((c) => c.id === state.currentId) ?? null;
+}
+
+/**
+ * Highlight search terms within the currently open conversation
+ * (in-conversation search on the reading view).
+ */
+function highlightInContent(term: string): void {
+  const root = detailContainer();
+  root.querySelectorAll('mark.highlight').forEach((m) => {
+    const parent = m.parentNode;
+    if (parent) {
+      parent.replaceChild(document.createTextNode(m.textContent ?? ''), m);
+      parent.normalize();
     }
   });
-  document.addEventListener('mouseup', () => {
-    resizing = false;
-    document.body.style.cursor = '';
-  });
+  if (!term) return;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    if (node.nodeValue && regex.test(node.nodeValue)) {
+      nodes.push(node);
+    }
+    regex.lastIndex = 0;
+  }
+  for (const node of nodes) {
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    regex.lastIndex = 0;
+    const text = node.nodeValue ?? '';
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(text)) !== null) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const mark = document.createElement('mark');
+      mark.className = 'highlight';
+      mark.textContent = m[0];
+      frag.appendChild(mark);
+      last = m.index + m[0].length;
+      if (m.index === regex.lastIndex) regex.lastIndex++;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode?.replaceChild(frag, node);
+  }
+}
+
+function clearContentSearch(): void {
+  const input = $('mobileSearchInput') as HTMLInputElement;
+  if (input.value) input.value = '';
+  highlightInContent('');
 }
 
 function updateSortButtons(): void {
@@ -644,7 +796,6 @@ function updateSortButtons(): void {
 
 function initLanguage(): void {
   const saved = localStorage.getItem('dscr-language') || 'zh-CN';
-  ($('languageSelect') as HTMLSelectElement).value = saved;
   document.documentElement.setAttribute('lang', saved);
   setLanguage(saved);
 }
@@ -655,7 +806,7 @@ function init(): void {
   initTheme();
   updateThemeButton();
   updateSortButtons();
-  updateSidebarButton();
+  setView('list');
   updateOutlineButton();
   // Apply the print preferences up front so Ctrl+P honors them too
   document.documentElement.classList.toggle('print-expand-think', localStorage.getItem('dscr-print-think') !== '0');
@@ -671,7 +822,10 @@ function init(): void {
   if (saved && saved.length > 0) {
     state.conversations = saved;
     const sorted = filterConversations(saved, state.filters);
-    if (sorted.length > 0) openConversation(sorted[0]);
+    if (sorted.length > 0) {
+      state.currentId = sorted[0].id;
+      updateInfoPanel(sorted[0]);
+    }
     refreshList();
     return;
   }

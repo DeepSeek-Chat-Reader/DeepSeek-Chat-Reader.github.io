@@ -29,3 +29,5 @@ seed.html
 scripts/serve.mjs
 
 scripts/print-sim.mjs
+
+scripts/diag.mjs

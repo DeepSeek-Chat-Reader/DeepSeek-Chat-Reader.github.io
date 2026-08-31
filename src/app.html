@@ -60,6 +60,19 @@
         </div>
     </div>
 
+    <!-- 语言模态窗口 -->
+    <div class="modal-overlay" id="languageModalOverlay" hidden></div>
+    <div class="modal" id="languageModal" role="dialog" aria-modal="true" hidden style="max-width:280px;">
+        <div class="modal-header">
+            <h3 data-i18n="language"></h3>
+            <button class="close-modal" id="closeLanguageModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="upload-section" style="border-bottom:none;">
+            <button id="langZhBtn">中文</button>
+            <button id="langEnBtn" style="background:var(--secondary-color);">English</button>
+        </div>
+    </div>
+
     <!-- 设置模态窗口 -->
     <div class="modal-overlay" id="settingsModalOverlay" hidden></div>
     <div class="modal" id="settingsModal" role="dialog" aria-modal="true" hidden style="max-width:360px;">
@@ -110,38 +123,31 @@
             <p><span data-i18n="lastUpdated"></span><a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/" target="_blank" rel="noopener" data-i18n="projectHomepage"></a></p>
         </div>
         <div class="header-controls">
-            <div class="language-selector">
-                <i class="fa-solid fa-globe"></i>
-                <select id="languageSelect" aria-label="Language">
-                    <option value="zh-CN">中文</option>
-                    <option value="en">English</option>
-                </select>
-            </div>
+            <button id="languageBtn" aria-label="Language">
+                <i class="fa-solid fa-globe"></i> <span data-i18n="languageShort"></span>
+            </button>
             <button id="uploadModalBtn" aria-label="Upload JSON">
-                <i class="fa-solid fa-upload"></i> <span data-i18n="uploadJSON"></span>
+                <i class="fa-solid fa-folder-open"></i> <span data-i18n="uploadJSON"></span>
             </button>
-            <button id="batchSelectBtn" aria-label="Batch Select">
-                <i class="fa-regular fa-square-check"></i> <span data-i18n="batchSelect"></span>
+            <button id="viewListBtn" aria-label="Conversation list">
+                <i class="fa-solid fa-list"></i> <span data-i18n="viewList"></span>
             </button>
-            <button id="toggleSidebarBtn" aria-label="Toggle Sidebar">
-                <i class="fa-solid fa-list"></i> <span>显示边栏</span>
-            </button>
-            <button id="toggleContentBtn" aria-label="Toggle Content" style="display:none;">
-                <i class="fa-regular fa-file-lines"></i> <span>显示内容</span>
+            <button id="viewContentBtn" aria-label="Reading view">
+                <i class="fa-regular fa-file-lines"></i> <span data-i18n="viewContent"></span>
             </button>
             <button id="toggleOutlineBtn" aria-label="Toggle Outline">
-                <i class="fa-solid fa-list-ol"></i> <span>大纲</span>
+                <i class="fa-solid fa-list-ol"></i> <span data-i18n="outline"></span>
             </button>
             <button id="settingsBtn" aria-label="Settings">
                 <i class="fa-solid fa-gear"></i> <span data-i18n="settings"></span>
             </button>
             <button id="themeToggle" aria-label="Toggle Theme">
-                <i class="fa-solid fa-moon"></i> <span>深色模式</span>
+                <i class="fa-solid fa-moon"></i> <span data-i18n="darkMode"></span>
             </button>
             <button id="saveBtn" aria-label="Save">
                 <i class="fa-solid fa-download"></i> <span data-i18n="saveOffline"></span>
             </button>
-            <button id="printBtn" class="btn-failure" aria-label="Print">
+            <button id="printBtn" aria-label="Print">
                 <i class="fa-solid fa-print"></i> <span data-i18n="printConversations"></span>
             </button>
             <button id="resetBtn" class="btn-danger" aria-label="Reset">
@@ -155,38 +161,46 @@
         <aside class="sidebar" id="sidebar">
             <div class="conversation-list" id="conversationList">
                 <div class="batch-actions" id="batchActions" hidden>
+                    <button class="batch-select" id="batchSelectBtn" data-i18n="batchSelect"></button>
                     <button class="batch-select-all" id="batchSelectAllBtn" data-i18n="selectAll"></button>
                     <button class="batch-invert" id="batchInvertBtn" data-i18n="invertSelection"></button>
                     <button class="batch-delete btn-danger" id="batchDeleteBtn" data-i18n="deleteSelected"></button>
                     <button class="batch-cancel" id="batchCancelBtn" data-i18n="cancelBatch"></button>
                 </div>
-                <div class="search-filters">
-                    <div class="search-box">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" aria-label="Search">
+                <div class="search-filters" id="searchFilters">
+                    <div class="search-filters-toggle">
+                        <button id="filterToggle" aria-label="Toggle filters">
+                            <i class="fa-solid fa-sliders"></i> <span data-i18n="filters"></span>
+                        </button>
                     </div>
-                    <div class="search-stats" id="searchStats"></div>
-                    <div class="date-filter">
-                        <input type="date" id="filterStartDate" aria-label="Start date">
-                        <input type="date" id="filterEndDate" aria-label="End date">
-                    </div>
-                    <div class="sort-options">
-                        <select id="sortFieldSelect" aria-label="Sort by">
-                            <option value="inserted_at" data-i18n="sortByStartDate"></option>
-                            <option value="updated_at" data-i18n="sortByLastDate"></option>
-                            <option value="title" data-i18n="sortTitle"></option>
-                        </select>
-                        <div class="sort-direction">
-                            <button id="sortAscBtn" class="active" data-i18n="ascending"></button>
-                            <button id="sortDescBtn" data-i18n="descending"></button>
+                    <div class="search-filters-body">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" aria-label="Search">
                         </div>
-                    </div>
-                    <div class="branch-display-options">
-                        <label for="defaultBranchDisplay" data-i18n="defaultBranchDisplay"></label>
-                        <select id="defaultBranchDisplay" aria-label="Default branch">
-                            <option value="first" data-i18n="firstBranch"></option>
-                            <option value="last" data-i18n="lastBranch"></option>
-                        </select>
+                        <div class="search-stats" id="searchStats"></div>
+                        <div class="date-filter">
+                            <input type="date" id="filterStartDate" aria-label="Start date">
+                            <input type="date" id="filterEndDate" aria-label="End date">
+                        </div>
+                        <div class="sort-options">
+                            <select id="sortFieldSelect" aria-label="Sort by">
+                                <option value="inserted_at" data-i18n="sortByStartDate"></option>
+                                <option value="updated_at" data-i18n="sortByLastDate"></option>
+                                <option value="title" data-i18n="sortTitle"></option>
+                            </select>
+                            <div class="sort-direction">
+                                <button id="sortAscBtn" class="active" data-i18n="ascending"></button>
+                                <button id="sortDescBtn" data-i18n="descending"></button>
+                            </div>
+                        </div>
+                        <div class="branch-display-options">
+                            <label for="defaultBranchDisplay" data-i18n="defaultBranchDisplay"></label>
+                            <select id="defaultBranchDisplay" aria-label="Default branch">
+                                <option value="first" data-i18n="firstBranch"></option>
+                                <option value="last" data-i18n="lastBranch"></option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="conversation-list-header">
@@ -197,9 +211,17 @@
             </div>
         </aside>
 
+        <section class="list-info" id="listInfoPanel" hidden></section>
+
         <div class="resize-handle" id="resizeHandle" aria-hidden="true"></div>
 
         <section class="content-area collapsed" id="contentArea">
+            <div class="content-toolbar" id="contentToolbar" hidden>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="mobileSearchInput" data-i18n-placeholder="searchInContent" aria-label="Search in conversation">
+                </div>
+            </div>
             <div class="conversation-detail" id="conversationDetailContainer"></div>
             <div class="outline-ribbon" id="outlineRibbon" title="大纲" aria-label="Outline"></div>
         </section>

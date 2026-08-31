@@ -124,33 +124,69 @@ header {
 .print-option input { accent-color: var(--primary-color); cursor: pointer; }
 .print-option-hint { font-size: 0.8rem; color: var(--muted-color); margin-bottom: 12px; }
 
-/* ---------- Main layout ---------- */
+/* ---------- Main layout (two views: list page / reading page) ---------- */
 .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
 
 .sidebar {
-  width: var(--sidebar-width);
+  width: min(360px, 40vw);
   background: var(--card-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.3s ease;
   flex-shrink: 0;
 }
-.sidebar.collapsed { width: 0; border-right: none; }
+body.view-content .sidebar { display: none; }
 
-.resize-handle {
-  width: var(--resize-handle-width);
-  background-color: #ddd;
-  cursor: col-resize;
-  flex-shrink: 0;
-  z-index: 10;
+/* Peek the list from the reading view (left ribbon, wide screens) */
+body.view-content.peek-list .sidebar {
+  display: flex;
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  z-index: 20;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
 }
-.resize-handle.hidden { opacity: 0; pointer-events: none; }
-.resize-handle:hover { background-color: var(--primary-color); }
 
-.content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-.content-area.collapsed { display: none; }
+.list-info {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border-right: 1px solid var(--border-color);
+  padding: 20px;
+  -webkit-overflow-scrolling: touch;
+}
+body.view-list .list-info { display: flex; }
+.list-info .list-info-empty { color: var(--muted-color); text-align: center; margin-top: 40px; }
+.list-info-title { font-size: 1.2rem; color: var(--primary-color); margin-bottom: 10px; }
+.list-info-title .edit-input { width: 100%; font-size: 1.1rem; }
+.list-info-meta { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--muted-color); }
+.list-info-meta b { color: var(--text-color); }
+.list-info-actions { margin-top: 16px; display: flex; gap: 8px; }
+
+.resize-handle { display: none; }
+
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+body.view-list .content-area { display: none; }
+body.view-content .content-area { display: flex; }
+body.view-content .content-area.collapsed { display: flex; }
+
+/* In-conversation search toolbar (reading view, narrow screens) */
+.content-toolbar {
+  display: none;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--card-bg);
+}
+.content-toolbar .search-box input { width: 100%; }
+body.view-content .content-toolbar { display: block; }
 
 .outline-sidebar {
   width: 280px;
@@ -300,6 +336,9 @@ header {
 .conversations-container { flex: 1; overflow-y: auto; }
 
 .search-filters { padding: 12px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.search-filters-toggle { display: none; }
+.search-filters-toggle button { width: 100%; padding: 6px; font-size: 0.85rem; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); }
+.search-filters.collapsed .search-filters-body { display: none; }
 .search-box { position: relative; margin-bottom: 8px; }
 .search-box input { width: 100%; padding: 8px 12px 8px 32px; }
 .search-box i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; }
@@ -322,6 +361,9 @@ header {
   border-bottom: 1px solid var(--border-color);
   background: var(--card-bg);
 }
+/* hidden attribute must win inside the batch bar (its buttons are display:flex) */
+.batch-actions[hidden] { display: none !important; }
+.batch-actions button[hidden] { display: none !important; }
 .batch-actions button { width: auto; padding: 6px 10px; font-size: 0.8rem; }
 
 .conversation-item {
@@ -441,8 +483,24 @@ header {
 
 .search-block summary { cursor: pointer; font-size: 0.85rem; color: #2e7d32; font-weight: bold; user-select: none; }
 .search-list { margin-top: 8px; }
-.search-result { padding: 6px 8px; border-radius: 4px; margin-bottom: 4px; background: var(--background-color); font-size: 0.85rem; }
-.search-result a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  background: var(--background-color);
+  font-size: 0.85rem;
+}
+.search-result a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline;
+}
 
 .file-list { display: flex; flex-direction: column; gap: 6px; }
 .file-chip {
@@ -651,10 +709,32 @@ header {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- Responsive ---------- */
-@media (orientation: portrait) {
-  .main-container { flex-direction: column; }
-  .sidebar { width: 100% !important; border-right: none; max-height: 45vh; }
-  .resize-handle { display: none; }
-  .outline-sidebar { position: absolute; right: 0; top: 0; bottom: 0; z-index: 30; }
+/* ---------- Responsive / touch ---------- */
+.highlight { background-color: #ffe066; color: #000; padding: 0 1px; border-radius: 2px; }
+
+/* Narrow screens (phones, small windows): icon-only header, hide title,
+   full-width list page, in-conversation search, collapsible filters. */
+@media (max-width: 900px) {
+  header { padding: 8px 10px; gap: 8px; }
+  .header-main h1, .header-main p { display: none; }
+  .header-controls { gap: 6px; }
+  .header-controls button { min-width: 40px; width: 40px; height: 40px; padding: 0; font-size: 1.1rem; }
+  .header-controls button span { display: none; }
+
+  .sidebar { width: 100% !important; border-right: none; }
+  .list-info { display: none !important; }
+  body.view-content .sidebar { display: none; }
+
+  .search-filters { padding: 8px; }
+  .search-filters-toggle { display: block; margin-bottom: 0; }
+  .search-filters-body { padding-top: 8px; }
+
+  .outline-sidebar { position: absolute; right: 0; top: 0; bottom: 0; z-index: 30; max-width: 80vw; }
+
+  .conversation-detail, .outline-content, .conversations-container {
+    -webkit-overflow-scrolling: touch;
+  }
 }
+
+/* ---------- Legacy: keyboard focus ---------- */
+.outline-target { scroll-margin-top: 12px; }
