@@ -188,11 +188,51 @@ header {
 }
 .outline-item:hover { background-color: rgba(52, 152, 219, 0.1); }
 .outline-item.active { background-color: rgba(52, 152, 219, 0.2); border-left-color: var(--primary-color); }
-.outline-item.level-1 { font-weight: bold; }
-.outline-item.level-2 { padding-left: 18px; }
-.outline-item.level-3 { padding-left: 28px; font-size: 0.8rem; }
-.outline-item.level-4 { padding-left: 38px; font-size: 0.78rem; }
-.outline-item.level-5, .outline-item.level-6 { padding-left: 48px; font-size: 0.76rem; }
+
+/* Turn (level 1): user input snippet + branch badge */
+.outline-item.turn {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  border-left-color: var(--primary-color);
+}
+.outline-item.turn:first-child { margin-top: 0; }
+.outline-turn-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline-badge {
+  flex-shrink: 0;
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: normal;
+  padding: 0 6px;
+  line-height: 1.5;
+}
+
+/* Markdown headings nested under their turn */
+.outline-item.heading.level-1 { padding-left: 18px; font-weight: bold; }
+.outline-item.heading.level-2 { padding-left: 26px; }
+.outline-item.heading.level-3 { padding-left: 34px; font-size: 0.8rem; }
+.outline-item.heading.level-4 { padding-left: 42px; font-size: 0.78rem; }
+.outline-item.heading.level-5, .outline-item.heading.level-6 { padding-left: 50px; font-size: 0.76rem; }
+
+/* Right-edge blue ribbon that reveals the outline on hover */
+.outline-ribbon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: transparent;
+  cursor: pointer;
+  z-index: 15;
+  transition: background-color 0.2s;
+}
+.outline-ribbon:hover {
+  background: rgba(52, 152, 219, 0.55);
+}
 
 /* ---------- Conversation list ---------- */
 .conversation-list { flex: 1; display: flex; flex-direction: column; overflow: hidden; }

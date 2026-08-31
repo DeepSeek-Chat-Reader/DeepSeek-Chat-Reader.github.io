@@ -304,15 +304,36 @@ function updateSidebarButton(): void {
   btn.innerHTML = `<i class="fa-solid fa-list"></i> <span>${escapeText(collapsed ? t('toggleSidebar') : t('hideSidebar'))}</span>`;
 }
 
+let outlinePinned = false;
+let outlineHideTimer: number | undefined;
+
 function toggleOutline(): void {
-  const sidebar = $('outlineSidebar');
-  const collapsed = sidebar.classList.toggle('collapsed');
+  outlinePinned = !outlinePinned;
+  $('outlineSidebar').classList.toggle('collapsed', !outlinePinned);
   updateOutlineButton();
 }
 
 function updateOutlineButton(): void {
-  const collapsed = $('outlineSidebar').classList.contains('collapsed');
-  $('toggleOutlineBtn').innerHTML = `<i class="fa-solid fa-list-ol"></i> <span>${escapeText(collapsed ? t('expandOutline') : t('outline'))}</span>`;
+  $('toggleOutlineBtn').innerHTML = `<i class="fa-solid fa-list-ol"></i> <span>${escapeText(outlinePinned ? t('collapseOutline') : t('outline'))}</span>`;
+}
+
+/** Hover the right-edge ribbon to peek the outline; button pins it. */
+function bindOutlineRibbon(): void {
+  const ribbon = $('outlineRibbon');
+  const sidebar = $('outlineSidebar');
+  ribbon.addEventListener('mouseenter', () => {
+    window.clearTimeout(outlineHideTimer);
+    sidebar.classList.remove('collapsed');
+  });
+  sidebar.addEventListener('mouseenter', () => {
+    window.clearTimeout(outlineHideTimer);
+  });
+  sidebar.addEventListener('mouseleave', () => {
+    if (outlinePinned) return;
+    outlineHideTimer = window.setTimeout(() => {
+      if (!outlinePinned) sidebar.classList.add('collapsed');
+    }, 250);
+  });
 }
 
 function resetAll(): void {
@@ -491,6 +512,7 @@ function bindEvents(): void {
   $('toggleSidebarBtn').addEventListener('click', toggleSidebar);
   $('toggleOutlineBtn').addEventListener('click', toggleOutline);
   $('collapseOutlineBtn').addEventListener('click', toggleOutline);
+  bindOutlineRibbon();
   $('printBtn').addEventListener('click', openPrintModal);
   $('doPrintBtn').addEventListener('click', doPrint);
   $('closePrintModal').addEventListener('click', closePrintModal);

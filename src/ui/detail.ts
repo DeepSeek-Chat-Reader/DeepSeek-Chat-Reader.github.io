@@ -16,6 +16,19 @@ export interface DetailHandlers {
   onBranchChange: (nodeId: string, branchIndex: number) => void;
 }
 
+interface OutlineHeading {
+  el: HTMLElement;
+  text: string;
+  level: number;
+}
+
+interface OutlineTurn {
+  label: string;
+  targetEl: HTMLElement | null;
+  badge: string | null;
+  headings: OutlineHeading[];
+}
+
 export function renderDetail(
   container: HTMLElement,
   conv: Conversation,
@@ -54,13 +67,43 @@ export function renderDetail(
   chainContainer.className = 'conversation-chain';
   container.appendChild(chainContainer);
 
-  const messageEls: HTMLElement[] = [];
-  for (const node of chain) {
+  const messageEls: (HTMLElement | null)[] = [];
+  const turns: OutlineTurn[] = [];
+  let currentTurn: OutlineTurn | null = null;
+
+  for (let i = 0; i < chain.length; i++) {
+    const node = chain[i];
+    let el: HTMLElement | null = null;
     if (node.message) {
-      const el = renderMessage(node);
+      el = renderMessage(node);
       messageEls.push(el);
       chainContainer.appendChild(el);
+    } else {
+      messageEls.push(null);
     }
+
+    // Build turn-grouped outline data from the chain
+    if (node.message) {
+      const types = node.message.fragments.map((f) => f.type);
+      const isUserTurn = types.includes('REQUEST') || types.includes('FILE');
+      if (isUserTurn) {
+        const kids = childrenOf(conv, node);
+        let badge: string | null = null;
+        if (kids.length > 1) {
+          const idx = branchPath.get(node.id) ?? (defaultBranch === 'last' ? kids.length - 1 : 0);
+          badge = `${idx + 1}/${kids.length}`;
+        }
+        currentTurn = { label: turnLabel(node), targetEl: el, badge, headings: [] };
+        turns.push(currentTurn);
+      }
+      if (el && (types.includes('RESPONSE') || types.includes('THINK'))) {
+        el.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((h) => {
+          const hh = h as HTMLElement;
+          currentTurn?.headings.push({ el: hh, text: hh.textContent ?? '', level: Number(hh.tagName[1]) });
+        });
+      }
+    }
+
     const kids = childrenOf(conv, node);
     if (kids.length > 1) {
       chainContainer.appendChild(
@@ -69,13 +112,29 @@ export function renderDetail(
     }
   }
 
+  buildOutline(turns);
+
   // Post-process: code blocks, mermaid, math
   void (async () => {
     for (const el of messageEls) {
-      await postProcessMessage(el);
+      if (el) await postProcessMessage(el);
     }
-    buildOutline(container, chainContainer);
   })();
+}
+
+/** Label for a turn: the user input snippet, or the attachment file name. */
+function turnLabel(node: Node): string {
+  if (!node.message) return '';
+  for (const f of node.message.fragments) {
+    if (f.type === 'REQUEST' && f.kind === 'text') {
+      const s = f.content.replace(/\s+/g, ' ').trim();
+      return s.length > 20 ? `${s.slice(0, 20)}…` : s;
+    }
+  }
+  for (const f of node.message.fragments) {
+    if (f.kind === 'file' && f.files[0]) return f.files[0].fileName;
+  }
+  return '';
 }
 
 function editDetailTitle(
@@ -149,28 +208,52 @@ function renderBranchNav(
   return nav;
 }
 
-function buildOutline(root: HTMLElement, chain: HTMLElement): void {
+/**
+ * Turn-grouped outline: each turn (user input) is a level-1 item with an
+ * optional "current/total" branch badge; markdown headings inside that turn's
+ * replies are indented under it. Clicking jumps to the target.
+ */
+function buildOutline(turns: OutlineTurn[]): void {
   const outlineEl = document.getElementById('outlineContent');
   if (!outlineEl) return;
   outlineEl.innerHTML = '';
-  const headings = chain.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6');
-  let idx = 0;
-  for (const h of headings) {
-    const id = `h-${idx++}`;
-    h.id = id;
-    h.classList.add('outline-target');
-    const item = document.createElement('div');
-    item.className = `outline-item level-${h.tagName[1]}`;
-    item.textContent = h.textContent ?? '';
-    item.addEventListener('click', () => {
-      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      outlineEl.querySelectorAll('.outline-item.active').forEach((e) => e.classList.remove('active'));
-      item.classList.add('active');
+
+  let headingIdx = 0;
+  for (const turn of turns) {
+    // Turn item (level 1)
+    const turnItem = document.createElement('div');
+    turnItem.className = 'outline-item turn';
+    turnItem.innerHTML = `<span class="outline-turn-label">${escapeHtml(turn.label || '')}</span>${
+      turn.badge ? `<span class="outline-badge">${escapeHtml(turn.badge)}</span>` : ''
+    }`;
+    turnItem.title = turn.label;
+    turnItem.addEventListener('click', () => {
+      if (turn.targetEl) {
+        turn.targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      setActive(outlineEl, turnItem);
     });
-    outlineEl.appendChild(item);
+    outlineEl.appendChild(turnItem);
+
+    // Headings under this turn
+    for (const h of turn.headings) {
+      const id = `h-${headingIdx++}`;
+      h.el.id = id;
+      h.el.classList.add('outline-target');
+      const item = document.createElement('div');
+      item.className = `outline-item heading level-${Math.min(h.level, 6)}`;
+      item.textContent = h.text;
+      item.title = h.text;
+      item.addEventListener('click', () => {
+        h.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setActive(outlineEl, item);
+      });
+      outlineEl.appendChild(item);
+    }
   }
-  const sidebar = document.getElementById('outlineSidebar');
-  if (sidebar) {
-    sidebar.classList.toggle('collapsed', headings.length === 0);
-  }
+}
+
+function setActive(outlineEl: HTMLElement, item: HTMLElement): void {
+  outlineEl.querySelectorAll('.outline-item.active').forEach((e) => e.classList.remove('active'));
+  item.classList.add('active');
 }
