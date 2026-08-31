@@ -339,8 +339,8 @@ function printPage(): void {
 // ---------------------------------------------------------------------------
 
 function openPrintModal(): void {
-  const cb = $('printThinkCheck') as HTMLInputElement;
-  cb.checked = localStorage.getItem('dscr-print-think') !== '0';
+  ($('printThinkCheck') as HTMLInputElement).checked = localStorage.getItem('dscr-print-think') !== '0';
+  ($('printSearchCheck') as HTMLInputElement).checked = localStorage.getItem('dscr-print-search') !== '0';
   $('printModal').classList.add('active');
   $('printModalOverlay').classList.add('active');
 }
@@ -351,23 +351,27 @@ function closePrintModal(): void {
 }
 
 async function doPrint(): Promise<void> {
-  const expand = ($('printThinkCheck') as HTMLInputElement).checked;
-  localStorage.setItem('dscr-print-think', expand ? '1' : '0');
-  document.documentElement.classList.toggle('print-expand-think', expand);
+  const expandThink = ($('printThinkCheck') as HTMLInputElement).checked;
+  const expandSearch = ($('printSearchCheck') as HTMLInputElement).checked;
+  localStorage.setItem('dscr-print-think', expandThink ? '1' : '0');
+  localStorage.setItem('dscr-print-search', expandSearch ? '1' : '0');
+  document.documentElement.classList.toggle('print-expand-think', expandThink);
+  document.documentElement.classList.toggle('print-expand-search', expandSearch);
   closePrintModal();
 
   // Force-open <details> for printing (CSS alone is unreliable in some
   // browsers) and restore their previous state after the print dialog closes.
   const opened: HTMLDetailsElement[] = [];
-  if (expand) {
-    document.querySelectorAll('details').forEach((d) => {
-      const el = d as HTMLDetailsElement;
+  const openIfClosed = (sel: string) => {
+    document.querySelectorAll<HTMLDetailsElement>(sel).forEach((el) => {
       if (!el.open) {
         el.open = true;
         opened.push(el);
       }
     });
-  }
+  };
+  if (expandThink) openIfClosed('details.think-block');
+  if (expandSearch) openIfClosed('details.search-block');
   window.addEventListener(
     'afterprint',
     () => {
@@ -592,8 +596,9 @@ function init(): void {
   updateSortButtons();
   updateSidebarButton();
   updateOutlineButton();
-  // Apply the print preference up front so Ctrl+P honors it too
+  // Apply the print preferences up front so Ctrl+P honors them too
   document.documentElement.classList.toggle('print-expand-think', localStorage.getItem('dscr-print-think') !== '0');
+  document.documentElement.classList.toggle('print-expand-search', localStorage.getItem('dscr-print-search') !== '0');
   bindEvents();
 
   const startDate = new Date('2023-11-29');

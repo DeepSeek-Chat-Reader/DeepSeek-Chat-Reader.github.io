@@ -26,7 +26,8 @@
     box-shadow: none !important;
     border: 1px solid #ddd !important;
   }
-  .message-content, .fragment {
+  .message-content, .fragment,
+  .search-result, .file-chip, .fragment-body {
     background: #fff !important;
     color: #000 !important;
   }
@@ -62,12 +63,14 @@
   }
 
   /* ---------- Big blocks MAY split across pages ---------- */
-  /* Small blocks stay whole (no mid-block cut); oversized blocks split
-     because overflow is visible (the previous blank-page root cause). */
-  .message, .fragment, .code-block {
+  /* Messages stay whole unless oversized; fragments are allowed to split so a
+     tall block (e.g. a long search list) never leaves a blank gap before the
+     next fragment. Small atomic pieces below stay whole. */
+  .message {
     page-break-inside: avoid;
     break-inside: avoid;
   }
+  .fragment { page-break-inside: auto; break-inside: auto; }
 
   /* Diagrams & math SVGs: keep whole AND ensure they fit one page so they
      are never pushed to a fresh page leaving blank regions behind. */
@@ -81,6 +84,7 @@
     width: auto;
     height: auto;
   }
+  .code-block { page-break-inside: avoid; break-inside: avoid; }
 
   /* ---------- Keep labels/headers attached to their content ---------- */
   .message-header, .fragment-header, .conversation-header,
@@ -100,10 +104,12 @@
   /* Code blocks and diagrams may split across pages (between lines for <pre>)
      so they don't leave large blank regions when they don't fit the page. */
 
-  /* ---------- Expand collapsed <details> (THINK / SEARCH) when requested ---------- */
-  html.print-expand-think details { display: block !important; }
-  html.print-expand-think details > summary { display: block; }
-  /* target the closed state explicitly — beats the UA rule in more engines */
-  html.print-expand-think details:not([open]) > :not(summary) { display: block !important; }
-  html.print-expand-think .search-list { display: block; }
+  /* ---------- Expand collapsed <details> when requested (two options) ---------- */
+  html.print-expand-think details.think-block { display: block !important; }
+  html.print-expand-think details.think-block > summary { display: block; }
+  html.print-expand-think details.think-block:not([open]) > :not(summary) { display: block !important; }
+  html.print-expand-search details.search-block { display: block !important; }
+  html.print-expand-search details.search-block > summary { display: block; }
+  html.print-expand-search details.search-block:not([open]) > :not(summary) { display: block !important; }
+  html.print-expand-search .search-list { display: block; }
 }

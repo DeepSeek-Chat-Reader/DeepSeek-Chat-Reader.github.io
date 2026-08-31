@@ -18,8 +18,9 @@ const zhCN: Dict = {
   printConversations: '打印',
   printOptions: '打印选项',
   printNow: '打印',
-  printExpandThink: '展开思考与搜索结果',
-  printExpandThinkHint: '勾选后，思考内容和搜索来源会完整打印；不勾选则只打印问题与回答。',
+  printExpandThink: '展开思考内容',
+  printExpandSearch: '展开搜索结果',
+  printExpandThinkHint: '勾选后对应内容会完整打印；不勾选则只显示折叠标题，内容不打印。',
   closeConversations: '关闭对话',
 
   uploadModalTitle: '上传或输入JSON内容',
@@ -121,8 +122,9 @@ const en: Dict = {
   printConversations: 'Print',
   printOptions: 'Print Options',
   printNow: 'Print',
-  printExpandThink: 'Expand thinking & search results',
-  printExpandThinkHint: 'When checked, thinking content and search sources are printed in full; otherwise only questions and answers are printed.',
+  printExpandThink: 'Expand thinking',
+  printExpandSearch: 'Expand search results',
+  printExpandThinkHint: 'Checked content is printed in full; unchecked shows only the collapsed heading.',
   closeConversations: 'Close Conversations',
 
   uploadModalTitle: 'Upload or Input JSON Content',
