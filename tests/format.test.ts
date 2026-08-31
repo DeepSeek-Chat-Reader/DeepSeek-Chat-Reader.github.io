@@ -10,6 +10,7 @@ import { normalizeExport } from '../src/parser';
 import { collectSearchResults, walkBranch } from '../src/model';
 import { collectCitations, maskCitations, restoreCitations } from '../src/citation';
 import { renderMarkdown } from '../src/render/markdown';
+import { serializeConversations } from '../src/storage';
 
 const NEW = readFileSync(resolve(__dirname, '../conversations.json'), 'utf-8');
 const OLD = readFileSync(resolve(__dirname, '../ExampleConversations.json'), 'utf-8');
@@ -143,7 +144,33 @@ describe('citations (verified indexing rules)', () => {
     const restored = restoreCitations(html, node4);
     expect(restored).toContain('class="citation-link"');
     expect(restored).toContain('https://www.163.com/dy/article/L5390ATB053469RG.html');
-    expect(restored).not.toContain('§REF:');
+    expect(restored).not.toContain('data-citref');
+    // markers directly after a URL must not be absorbed into the autolink href
+    const hrefs = [...restored.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    expect(hrefs.every((h) => !h.includes('data-citref') && !h.includes('§'))).toBe(true);
+  });
+
+  it('serialize -> parse round-trip preserves structure', () => {
+    const convs2 = normalizeExport(serializeConversations(convs) as never);
+    expect(convs2).toHaveLength(convs.length);
+    for (let i = 0; i < convs.length; i++) {
+      const a = convs[i];
+      const b = convs2[i];
+      expect(b.id).toBe(a.id);
+      expect(b.title).toBe(a.title);
+      expect([...b.nodes.keys()].sort()).toEqual([...a.nodes.keys()].sort());
+      // spot check the FILE fragment survived with snake_case restored
+      const a11 = a.nodes.get('11');
+      const b11 = b.nodes.get('11');
+      if (a11?.message && b11?.message) {
+        const fa = a11.message.fragments.find((f) => f.kind === 'file');
+        const fb = b11.message.fragments.find((f) => f.kind === 'file');
+        if (fa?.kind === 'file' && fb?.kind === 'file') {
+          expect(fb.files[0].fileName).toBe(fa.files[0].fileName);
+          expect(fb.files[0].fileSize).toBe(fa.files[0].fileSize);
+        }
+      }
+    }
   });
 });
 

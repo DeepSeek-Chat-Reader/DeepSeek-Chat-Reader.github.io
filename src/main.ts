@@ -307,6 +307,11 @@ function updateSidebarButton(): void {
 function toggleOutline(): void {
   const sidebar = $('outlineSidebar');
   const collapsed = sidebar.classList.toggle('collapsed');
+  updateOutlineButton();
+}
+
+function updateOutlineButton(): void {
+  const collapsed = $('outlineSidebar').classList.contains('collapsed');
   $('toggleOutlineBtn').innerHTML = `<i class="fa-solid fa-list-ol"></i> <span>${escapeText(collapsed ? t('expandOutline') : t('outline'))}</span>`;
 }
 
@@ -429,7 +434,6 @@ function bindEvents(): void {
   // Header buttons
   $('themeToggle').addEventListener('click', () => {
     toggleTheme();
-    applyTranslations();
   });
   $('toggleSidebarBtn').addEventListener('click', toggleSidebar);
   $('toggleOutlineBtn').addEventListener('click', toggleOutline);
@@ -454,6 +458,8 @@ function bindEvents(): void {
     setLanguage(lang);
     applyTranslations();
     updateThemeButton();
+    updateSidebarButton();
+    updateOutlineButton();
     renderCurrent();
     refreshList();
   });
@@ -533,6 +539,7 @@ function init(): void {
   updateThemeButton();
   updateSortButtons();
   updateSidebarButton();
+  updateOutlineButton();
   bindEvents();
 
   const startDate = new Date('2023-11-29');

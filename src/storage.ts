@@ -1,13 +1,18 @@
 /**
  * Persistence: localStorage backups, JSON export, snapshot save.
+ *
+ * IMPORTANT: conversations are stored in the RAW export shape (via
+ * serializeConversations) and revived through the parser, because
+ * JSON.stringify of the internal model would lose Map/Date structures.
  */
 import type { Conversation } from './types';
+import { normalizeExport } from './parser';
 
 const STORAGE_KEY = 'deepseekConversations';
 
 export function saveToStorage(conversations: Conversation[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeConversations(conversations)));
   } catch (e) {
     console.warn('localStorage save failed', e);
   }
@@ -16,7 +21,8 @@ export function saveToStorage(conversations: Conversation[]): void {
 export function loadFromStorage(): Conversation[] | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Conversation[]) : null;
+    if (!raw) return null;
+    return normalizeExport(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -56,9 +62,27 @@ export function serializeConversations(conversations: Conversation[]): unknown {
             ? {
                 model: n.message.model,
                 inserted_at: n.message.insertedAt.toISOString(),
-                fragments: n.message.fragments.map((f) =>
-                  f.kind === 'unknown' ? f.raw : f,
-                ),
+                fragments: n.message.fragments.map((f) => {
+                  switch (f.kind) {
+                    case 'text':
+                      return { type: f.type, content: f.content };
+                    case 'file':
+                      return {
+                        type: 'FILE',
+                        files: f.files.map((x) => ({
+                          file_id: x.fileId,
+                          file_name: x.fileName,
+                          file_size: x.fileSize,
+                        })),
+                      };
+                    case 'search':
+                      return { type: f.type, results: f.results };
+                    case 'toolOpen':
+                      return { type: 'TOOL_OPEN' };
+                    default:
+                      return f.raw;
+                  }
+                }),
               }
             : null,
         },

@@ -52,16 +52,26 @@ export function collectCitations(content: string, node: Node | null): CitationLi
   return links;
 }
 
-/** Replace citation markers with placeholder tokens (safe through markdown). */
+/**
+ * Replace citation markers with HTML placeholder spans. Using spans instead
+ * of plain text tokens is important: marked preserves raw inline HTML and URL
+ * autolinking stops at '<', so the marker can never be absorbed into a URL.
+ */
 export function maskCitations(content: string): string {
-  return content.replace(REFERENCE_RE, '§REF:$1§').replace(CITATION_RE, '§CIT:$1§');
+  return content
+    .replace(REFERENCE_RE, '<span data-citref="$1"></span>')
+    .replace(CITATION_RE, '<span data-citcit="$1"></span>');
 }
 
-/** Swap placeholder tokens back into citation anchor links. */
+/** Swap placeholder spans back into citation anchor links. */
 export function restoreCitations(html: string, node: Node | null): string {
   return html
-    .replace(/§REF:(\d+)§/g, (_s, n: string) => renderAnchor(resolve('reference', Number(n), node)))
-    .replace(/§CIT:(\d+)§/g, (_s, n: string) => renderAnchor(resolve('citation', Number(n), node)));
+    .replace(/<span data-citref="(\d+)"><\/span>/g, (_s, n: string) =>
+      renderAnchor(resolve('reference', Number(n), node)),
+    )
+    .replace(/<span data-citcit="(\d+)"><\/span>/g, (_s, n: string) =>
+      renderAnchor(resolve('citation', Number(n), node)),
+    );
 }
 
 export function renderAnchor(l: CitationLink): string {

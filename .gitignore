@@ -23,3 +23,7 @@ DeepSeek网页端结构与测试对话记录.md
 # OS
 Thumbs.db
 .DS_Store
+
+# dev helper
+seed.html
+scripts/serve.mjs

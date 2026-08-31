@@ -182,7 +182,13 @@ function formatFileSize(bytes: number): string {
 export async function postProcessMessage(container: HTMLElement): Promise<void> {
   enhanceCodeBlocks(container);
   await renderMermaidBlocks(container);
-  await typesetMath(container);
+  // MathJax: only typeset math in assistant content (response / think), not user input
+  const targets = container.querySelectorAll<HTMLElement>(
+    '.fragment.response .fragment-body, .fragment.think .fragment-body',
+  );
+  for (const t of targets) {
+    await typesetMath(t);
+  }
 }
 
 function enhanceCodeBlocks(container: HTMLElement): void {
@@ -190,6 +196,8 @@ function enhanceCodeBlocks(container: HTMLElement): void {
     const code = codeEl as HTMLElement;
     const pre = code.parentElement as HTMLElement;
     if (!pre || pre.classList.contains('code-block') || pre.closest('.code-block')) return;
+    // mermaid blocks are replaced entirely by renderMermaidBlocks
+    if (code.classList.contains('language-mermaid')) return;
 
     const wrapper = document.createElement('div');
     wrapper.className = 'code-block';

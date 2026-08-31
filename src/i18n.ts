@@ -5,6 +5,7 @@ type Dict = Record<string, string>;
 const zhCN: Dict = {
   appTitle: 'DeepSeek导出对话查看器',
   projectHomepage: '项目主页',
+  lastUpdated: '最后更新：2026-08-31 | ',
   uploadJSON: '上传JSON',
   batchSelect: '批量选择',
   toggleSidebar: '显示边栏',
@@ -103,6 +104,7 @@ const zhCN: Dict = {
 const en: Dict = {
   appTitle: 'DeepSeek Chat Reader',
   projectHomepage: 'Project Homepage',
+  lastUpdated: 'Last updated: 2026-08-31 | ',
   uploadJSON: 'Upload JSON',
   batchSelect: 'Batch Select',
   toggleSidebar: 'Show Sidebar',
