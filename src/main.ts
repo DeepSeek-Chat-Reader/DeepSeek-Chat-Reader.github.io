@@ -350,7 +350,7 @@ function closePrintModal(): void {
   $('printModalOverlay').classList.remove('active');
 }
 
-function doPrint(): void {
+async function doPrint(): Promise<void> {
   const expand = ($('printThinkCheck') as HTMLInputElement).checked;
   localStorage.setItem('dscr-print-think', expand ? '1' : '0');
   document.documentElement.classList.toggle('print-expand-think', expand);
@@ -377,6 +377,9 @@ function doPrint(): void {
     },
     { once: true },
   );
+  // Let async renders (MathJax / mermaid) and the forced-open details settle
+  // so the print engine measures the final layout.
+  await new Promise((r) => setTimeout(r, 300));
   window.print();
 }
 

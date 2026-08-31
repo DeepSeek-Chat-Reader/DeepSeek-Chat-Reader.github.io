@@ -62,7 +62,25 @@
   }
 
   /* ---------- Big blocks MAY split across pages ---------- */
-  .message, .fragment, .code-block, .mermaid { page-break-inside: auto; break-inside: auto; }
+  /* Small blocks stay whole (no mid-block cut); oversized blocks split
+     because overflow is visible (the previous blank-page root cause). */
+  .message, .fragment, .code-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Diagrams & math SVGs: keep whole AND ensure they fit one page so they
+     are never pushed to a fresh page leaving blank regions behind. */
+  .mermaid, .math-display {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .mermaid svg, .math-display svg {
+    max-width: 100%;
+    max-height: 220mm;
+    width: auto;
+    height: auto;
+  }
 
   /* ---------- Keep labels/headers attached to their content ---------- */
   .message-header, .fragment-header, .conversation-header,

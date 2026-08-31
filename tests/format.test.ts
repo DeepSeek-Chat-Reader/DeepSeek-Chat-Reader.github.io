@@ -150,6 +150,25 @@ describe('citations (verified indexing rules)', () => {
     expect(hrefs.every((h) => !h.includes('data-citref') && !h.includes('§'))).toBe(true);
   });
 
+  it('math extension protects LaTeX from markdown mangling', () => {
+    const testConv = convs.find((c) => c.id === '1fb61f51-ab6e-456e-bd98-77d2f1ddea12')!;
+    const node2 = testConv.nodes.get('2')!;
+    const resp = node2.message!.fragments.find((f) => f.type === 'RESPONSE')!;
+    if (resp.kind !== 'text') throw new Error('unexpected');
+    const html = renderMarkdown(resp.content);
+    // every $$...$$ block is wrapped verbatim in a .math-display container
+    const blocks = [...html.matchAll(/<div class="math-display">([\s\S]*?)<\/div>/g)].map(
+      (m) => m[1],
+    );
+    expect(blocks.length).toBeGreaterThanOrEqual(2);
+    const bayes = blocks.find((b) => b.includes('\\hat{\\theta}'));
+    expect(bayes).toBeDefined();
+    // underscores inside the formula must NOT have become <em>
+    expect(bayes).not.toMatch(/<em>/);
+    expect(bayes).toContain('\\prod_{j=1}^{N}');
+    expect(bayes).toContain('\\sum_{i=1}^{N}');
+  });
+
   it('serialize -> parse round-trip preserves structure', () => {
     const convs2 = normalizeExport(serializeConversations(convs) as never);
     expect(convs2).toHaveLength(convs.length);
