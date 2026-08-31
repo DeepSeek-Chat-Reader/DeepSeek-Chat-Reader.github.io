@@ -1,0 +1,25 @@
+# Dependencies / build
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Scratch / reference (not for repo)
+_upstream_ref/
+
+# Test data & private export (never commit — contains personal chat data)
+conversations.json
+ExampleConversations.json.new
+*.jpeg
+*.jpg
+坍缩.txt
+
+# Local working docs (kept in workspace, not in repo)
+浏览器操作经验.md
+DeepSeek网页端结构与测试对话记录.md
+
+# OS
+Thumbs.db
+.DS_Store
