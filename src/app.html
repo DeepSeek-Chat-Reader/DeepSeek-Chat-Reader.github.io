@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<!--
+  DeepSeek Chat Reader v2
+  Source: https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io
+  Built with Vite + TypeScript; this file is the Vite entry (build artifact = ./index.html)
+-->
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="appTitle">DeepSeek Chat Reader</title>
+    <script type="module" src="/src/main.ts"></script>
+</head>
+<body>
+    <div class="loading" id="loading" hidden>
+        <div class="loading-spinner"></div>
+        <div data-i18n="loadingText"></div>
+    </div>
+
+    <!-- 上传模态窗口 -->
+    <div class="modal-overlay" id="modalOverlay" hidden></div>
+    <div class="modal" id="uploadModal" role="dialog" aria-modal="true" hidden>
+        <div class="modal-header">
+            <h3 data-i18n="uploadModalTitle"></h3>
+            <button class="close-modal" id="closeModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="upload-section">
+            <div class="file-upload" id="dropZone" role="button" tabindex="0">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px;color:#3498db;margin-bottom:8px;"></i>
+                <p data-i18n="dropZoneText"></p>
+                <input type="file" id="fileInput" accept=".json,application/json" hidden>
+            </div>
+            <div>
+                <h3 style="font-size:0.95rem;margin-bottom:8px;" data-i18n="manualInputTitle"></h3>
+                <textarea class="json-input" id="jsonInput" data-i18n-placeholder="jsonInputPlaceholder" spellcheck="false"></textarea>
+                <button id="parseButton" data-i18n="parseButton"></button>
+                <p><span data-i18n="helpText"></span><a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/blob/main/README.md#how-to-use" target="_blank" rel="noopener" data-i18n="viewInstructions"></a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存模态窗口 -->
+    <div class="modal-overlay" id="saveModalOverlay" hidden></div>
+    <div class="modal" id="saveModal" role="dialog" aria-modal="true" hidden style="max-width:400px;">
+        <div class="modal-header">
+            <h3 data-i18n="saveModalTitle"></h3>
+            <button class="close-modal" id="closeSaveModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="upload-section" style="border-bottom:none;">
+            <h4 style="margin-bottom:10px;" data-i18n="saveCurrentPage"></h4>
+            <button id="saveOriginalBtn" style="margin-bottom:10px;">
+                <i class="fa-brands fa-github"></i> <span data-i18n="downloadFromGitHub"></span>
+            </button>
+            <button id="saveOriginalGiteeBtn" style="margin-bottom:10px;">
+                <i class="fa-brands fa-git-alt"></i> <span data-i18n="downloadFromGitee"></span>
+            </button>
+            <button id="saveOfflineBtn" class="btn-failure" style="margin-bottom:10px;">
+                <i class="fa-regular fa-file-code"></i> <span data-i18n="saveSnapshot"></span>
+            </button>
+            <h4 style="margin-bottom:10px;" data-i18n="saveEditedConversations"></h4>
+            <button id="saveJsonBtn" style="margin-bottom:10px;">
+                <i class="fa-solid fa-file-export"></i> <span data-i18n="saveAsJSON"></span>
+            </button>
+            <button id="saveHtmlBtn" class="btn-failure" style="margin-bottom:10px;">
+                <i class="fa-regular fa-comments"></i> <span data-i18n="saveWithSnapshot"></span>
+            </button>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-main">
+            <h1><i class="fa-regular fa-comments"></i> <span data-i18n="appTitle"></span></h1>
+            <p><span data-i18n="lastUpdated"></span><a href="https://github.com/DeepSeek-Chat-Reader/DeepSeek-Chat-Reader.github.io/" target="_blank" rel="noopener" data-i18n="projectHomepage"></a></p>
+        </div>
+        <div class="header-controls">
+            <div class="language-selector">
+                <i class="fa-solid fa-globe"></i>
+                <select id="languageSelect" aria-label="Language">
+                    <option value="zh-CN">中文</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <button id="uploadModalBtn" aria-label="Upload JSON">
+                <i class="fa-solid fa-upload"></i> <span data-i18n="uploadJSON"></span>
+            </button>
+            <button id="batchSelectBtn" aria-label="Batch Select">
+                <i class="fa-regular fa-square-check"></i> <span data-i18n="batchSelect"></span>
+            </button>
+            <button id="toggleSidebarBtn" aria-label="Toggle Sidebar">
+                <i class="fa-solid fa-list"></i> <span data-i18n="toggleSidebar"></span>
+            </button>
+            <button id="toggleContentBtn" aria-label="Toggle Content" style="display:none;">
+                <i class="fa-regular fa-file-lines"></i> <span data-i18n="toggleContent"></span>
+            </button>
+            <button id="toggleOutlineBtn" aria-label="Toggle Outline">
+                <i class="fa-solid fa-list-ol"></i> <span data-i18n="outline"></span>
+            </button>
+            <button id="themeToggle" aria-label="Toggle Theme">
+                <i class="fa-solid fa-moon"></i> <span data-i18n="darkMode"></span>
+            </button>
+            <button id="saveBtn" aria-label="Save">
+                <i class="fa-solid fa-download"></i> <span data-i18n="saveOffline"></span>
+            </button>
+            <button id="printBtn" class="btn-failure" aria-label="Print">
+                <i class="fa-solid fa-print"></i> <span data-i18n="printConversations"></span>
+            </button>
+            <button id="resetBtn" class="btn-danger" aria-label="Reset">
+                <i class="fa-solid fa-xmark"></i> <span data-i18n="closeConversations"></span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="conversation-list" id="conversationList">
+                <div class="batch-actions" id="batchActions" hidden>
+                    <input type="checkbox" id="selectAllCheckbox" class="batch-checkbox" aria-label="Select all">
+                    <button class="batch-invert" id="batchInvertBtn" data-i18n="invertSelection"></button>
+                    <button class="batch-delete btn-danger" id="batchDeleteBtn" data-i18n="deleteSelected"></button>
+                </div>
+                <div class="search-filters">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" aria-label="Search">
+                    </div>
+                    <div class="search-stats" id="searchStats" data-i18n="searchResults"></div>
+                    <div class="date-filter">
+                        <input type="date" id="filterStartDate" aria-label="Start date">
+                        <input type="date" id="filterEndDate" aria-label="End date">
+                    </div>
+                    <div class="sort-options">
+                        <select id="sortFieldSelect" aria-label="Sort by">
+                            <option value="inserted_at" data-i18n="sortByStartDate"></option>
+                            <option value="updated_at" data-i18n="sortByLastDate"></option>
+                            <option value="title" data-i18n="sortTitle"></option>
+                        </select>
+                        <div class="sort-direction">
+                            <button id="sortAscBtn" class="active" data-i18n="ascending"></button>
+                            <button id="sortDescBtn" data-i18n="descending"></button>
+                        </div>
+                    </div>
+                    <div class="branch-display-options">
+                        <label for="defaultBranchDisplay" data-i18n="defaultBranchDisplay"></label>
+                        <select id="defaultBranchDisplay" aria-label="Default branch">
+                            <option value="first" data-i18n="firstBranch"></option>
+                            <option value="last" data-i18n="lastBranch"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="conversation-list-header">
+                    <span><i class="fa-solid fa-list"></i> <span data-i18n="conversationList"></span></span>
+                    <span id="conversationCount" data-i18n="conversationCount"></span>
+                </div>
+                <div class="conversations-container" id="conversationsContainer"></div>
+            </div>
+        </aside>
+
+        <div class="resize-handle" id="resizeHandle" aria-hidden="true"></div>
+
+        <section class="content-area collapsed" id="contentArea">
+            <div class="conversation-detail" id="conversationDetailContainer"></div>
+        </section>
+
+        <aside class="outline-sidebar collapsed" id="outlineSidebar">
+            <div class="outline-header">
+                <span data-i18n="outline"></span>
+                <button class="toggle-outline-btn" id="collapseOutlineBtn" aria-label="Collapse outline">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="outline-content" id="outlineContent"></div>
+        </aside>
+    </div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+/* ============ Print styles (fixes issue #1) ============
+ * - Force a light color scheme so dark-mode backgrounds don't print.
+ * - Avoid unnecessary page breaks inside messages/code/table rows.
+ * - Hide interactive chrome (header, sidebar, nav, action buttons).
+ */
+@media print {
+  html[data-theme='dark'],
+  html[data-theme='dark'] body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* force light palette for all cards/bubbles */
+  .message, .fragment, .conversation-detail, .code-block {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  .message-content, .fragment {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .request-text, .message-header, .fragment-header { color: #000 !important; }
+
+  pre, code { background: #f5f5f5 !important; color: #333 !important; border: 1px solid #ddd !important; }
+  .code-header { background: #eee !important; color: #333 !important; border-bottom: 1px solid #ddd !important; }
+  .code-lang { color: #333 !important; }
+  a { color: #0000ee !important; }
+
+  /* hide chrome */
+  header, .sidebar, .resize-handle, .outline-sidebar,
+  .code-actions, .branch-navigation, .conversation-actions,
+  .conversation-header-actions, .model-tag, .tool-open-chip, .loading {
+    display: none !important;
+  }
+
+  .main-container { display: block !important; height: auto; overflow: visible; }
+  .content-area { display: block !important; overflow: visible; height: auto; }
+  .conversation-detail { padding: 0; overflow: visible; height: auto; }
+
+  body, html { height: auto; overflow: visible; }
+
+  /* avoid awkward breaks */
+  .message, .fragment, .code-block, .search-result, .file-chip, tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .message { page-break-after: auto; }
+  .message:last-of-type { page-break-after: avoid; }
+  .fragment-divider { border: none; height: 0; margin: 6px 0; }
+
+  /* keep headings with following content */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+}
