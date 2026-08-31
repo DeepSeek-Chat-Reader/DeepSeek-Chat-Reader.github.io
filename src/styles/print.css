@@ -1,16 +1,25 @@
-/* ============ Print styles (fixes issue #1) ============
- * - Force a light color scheme so dark-mode backgrounds don't print.
- * - Avoid unnecessary page breaks inside messages/code/table rows.
- * - Hide interactive chrome (header, sidebar, nav, action buttons).
+/* ============ Print styles (fixes issue #1 + blank-page/breakage reports) ============
+ *
+ * Key fixes over the previous version:
+ *  1. Big blocks (.message/.fragment) are allowed to SPLIT across pages —
+ *     `page-break-inside: avoid` on a block taller than one page pushes the
+ *     whole block to the next page and leaves the current page blank.
+ *  2. Headers (title / REQUEST / THINK labels) use `break-after: avoid` so
+ *     they stay attached to their content instead of being orphaned.
+ *  3. Collapsed <details> (thinking / search blocks) are force-expanded so
+ *     their content actually prints (Chrome hides closed-details content).
+ *  4. Flex layouts are flattened to block so height calculation is sane.
+ *  5. Small atomic pieces (code blocks, rows, chips, diagrams) keep
+ *     break-inside: avoid.
+ *  6. orphans/widows keep paragraphs from leaving single lines on pages.
  */
 @media print {
+  /* ---------- Force light palette (issue #1: dark-mode backgrounds) ---------- */
   html[data-theme='dark'],
   html[data-theme='dark'] body {
     background: #fff !important;
     color: #000 !important;
   }
-
-  /* force light palette for all cards/bubbles */
   .message, .fragment, .conversation-detail, .code-block {
     background: #fff !important;
     color: #000 !important;
@@ -22,37 +31,50 @@
     color: #000 !important;
   }
   .request-text, .message-header, .fragment-header { color: #000 !important; }
-
   pre, code { background: #f5f5f5 !important; color: #333 !important; border: 1px solid #ddd !important; }
   .code-header { background: #eee !important; color: #333 !important; border-bottom: 1px solid #ddd !important; }
   .code-lang { color: #333 !important; }
   a { color: #0000ee !important; }
 
-  /* hide chrome */
+  /* ---------- Hide interactive chrome ---------- */
   header, .sidebar, .resize-handle, .outline-sidebar,
   .code-actions, .branch-navigation, .conversation-actions,
-  .conversation-header-actions, .model-tag, .tool-open-chip, .loading {
+  .conversation-header-actions, .model-tag, .tool-open-chip, .loading,
+  .fragment-divider {
     display: none !important;
   }
 
+  /* ---------- Flatten flex layouts (blank-page from height miscalc) ---------- */
+  body { display: block !important; height: auto; overflow: visible; }
   .main-container { display: block !important; height: auto; overflow: visible; }
   .content-area { display: block !important; overflow: visible; height: auto; }
   .conversation-detail { padding: 0; overflow: visible; height: auto; }
+  .conversation-chain { display: block; }
+  .message { display: block; margin-bottom: 16px; }
 
-  body, html { height: auto; overflow: visible; }
+  /* ---------- Big blocks MAY split across pages ---------- */
+  .message, .fragment { page-break-inside: auto; break-inside: auto; }
 
-  /* avoid awkward breaks */
-  .message, .fragment, .code-block, .search-result, .file-chip, tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-  .message { page-break-after: auto; }
-  .message:last-of-type { page-break-after: avoid; }
-  .fragment-divider { border: none; height: 0; margin: 6px 0; }
-
-  /* keep headings with following content */
-  h1, h2, h3, h4, h5, h6 {
+  /* ---------- Keep labels/headers attached to their content ---------- */
+  .message-header, .fragment-header, .conversation-header,
+  h1, h2, h3, h4, h5, h6, summary {
     page-break-after: avoid;
     break-after: avoid;
   }
+
+  /* ---------- Avoid orphaned single lines ---------- */
+  p, li { orphans: 3; widows: 3; }
+
+  /* ---------- Small atomic pieces must not split ---------- */
+  .code-block, .search-result, .file-chip, .mermaid,
+  tr, th, td, .citation-link {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ---------- Expand collapsed <details> (THINK / SEARCH) for printing ---------- */
+  details { display: block !important; }
+  details > summary { display: block; }
+  details > :not(summary) { display: block !important; }
+  .search-list { display: block; }
 }
