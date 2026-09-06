@@ -241,6 +241,23 @@ body.view-list.table-mode .list-info { display: none; }
   width: auto; padding: 2px 8px; margin-left: 4px; font-size: 0.75rem;
 }
 
+/* Hit-count column + per-conversation snippet rows (only while searching) */
+.conv-table th.col-hits, .conv-table td.col-hits { width: 84px; text-align: center; display: none; }
+.conv-table.searching th.col-hits, .conv-table.searching td.col-hits { display: table-cell; }
+.conv-table tr.hit-snippet-row { display: none; }
+.conv-table.searching tr.hit-snippet-row { display: table-row; }
+.conv-table tr.hit-snippet-row > td { white-space: normal; padding: 2px 10px 6px 54px; }
+.hit-snippets { display: flex; flex-direction: column; gap: 2px; }
+.hit-snippet {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--muted-color);
+}
+.hit-snippet mark { background: transparent; color: var(--text-color); font-weight: bold; }
+.hit-snippet-more { font-size: 0.75rem; color: var(--muted-color); }
+
 /* Sortable column headers with ↑/↓ indicator and a draggable resize grip */
 .conv-table th[data-sort] { cursor: pointer; user-select: none; }
 .conv-table th[data-sort] .sort-arrow { margin-left: 6px; font-size: 0.7rem; color: var(--primary-color); }
@@ -281,14 +298,26 @@ body.view-content .content-area.collapsed { display: flex; }
 /* In-conversation search bar: input + prev/next navigation + result count */
 .content-toolbar .search-box.content-search { display: flex; align-items: center; gap: 6px; }
 .content-toolbar .search-box.content-search input { flex: 1; min-width: 0; }
-.search-result-count { flex: none; font-size: 0.75rem; color: var(--muted-color); min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
+/* Prev/next/clear only appear while a query is active (no stray empty buttons) */
 .content-search .search-nav {
-  flex: none; width: 28px; height: 28px; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 0.75rem; background: var(--card-bg); color: var(--text-color);
+  flex: none; width: 30px; height: 30px; padding: 0;
+  display: none; align-items: center; justify-content: center;
+  font-size: 0.95rem; font-weight: bold; line-height: 1;
+  background: var(--card-bg); color: var(--text-color);
   border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;
 }
-.content-search .search-nav:disabled { opacity: 0.4; cursor: default; }
+.content-search.has-query .search-nav { display: inline-flex; }
+.content-search .search-nav:disabled { opacity: 0.35; cursor: default; }
+.content-search .search-nav:not(:disabled):hover { background: var(--primary-color); color: #fff; }
+.content-search .search-clear:not(:disabled):hover { background: var(--warning-color); color: #fff; }
+.content-search-status {
+  display: none;
+  margin: 4px 12px 0;
+  font-size: 0.75rem;
+  color: var(--muted-color);
+  font-variant-numeric: tabular-nums;
+}
+.content-search-status.active { display: block; }
 mark.highlight { background: #ffe082; color: #222; border-radius: 2px; padding: 0 1px; }
 mark.highlight.search-current { background: #ffb74d; outline: 2px solid var(--primary-color); }
 [data-theme="dark"] mark.highlight { background: #a18000; color: #fff; }

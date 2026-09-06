@@ -129,6 +129,10 @@ const zhCN: Dict = {
   colChars: '字数',
   filters: '筛选',
   searchInContent: '搜索本文内容...',
+  hitsCount: '命中 {count} 处',
+  hitsPosition: '第 {pos} 处 / 共 {count} 处',
+  colHits: '命中',
+  searchMoreHits: '…另有 {more} 处',
 
   outline: '大纲',
   collapseOutline: '收起',
@@ -262,6 +266,10 @@ const en: Dict = {
   colChars: 'Chars',
   filters: 'Filters',
   searchInContent: 'Search this conversation...',
+  hitsCount: '{count} matches',
+  hitsPosition: 'Match {pos} / {count}',
+  colHits: 'Hits',
+  searchMoreHits: '…{more} more',
 
   outline: 'Outline',
   collapseOutline: 'Collapse',

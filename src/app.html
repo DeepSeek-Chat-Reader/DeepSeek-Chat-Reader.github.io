@@ -274,6 +274,7 @@
                             <th data-sort="updated_at" data-i18n="colEnd"></th>
                             <th data-sort="turns" data-i18n="colTurns"></th>
                             <th data-sort="chars" data-i18n="colChars"></th>
+                            <th class="col-hits" data-i18n="colHits"></th>
                             <th class="col-actions"></th>
                         </tr>
                     </thead>
@@ -289,11 +290,11 @@
                 <div class="search-box content-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="mobileSearchInput" data-i18n-placeholder="searchInContent" aria-label="Search in conversation">
-                    <span class="search-result-count" id="contentSearchCount"></span>
-                    <button class="search-nav" id="contentSearchPrev" aria-label="Previous match" disabled><i class="fa-solid fa-chevron-up"></i></button>
-                    <button class="search-nav" id="contentSearchNext" aria-label="Next match" disabled><i class="fa-solid fa-chevron-down"></i></button>
-                    <button class="search-nav" id="contentSearchClear" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="search-nav" id="contentSearchPrev" aria-label="Previous match" title="上一处 (Shift+Enter)" disabled>↑</button>
+                    <button class="search-nav" id="contentSearchNext" aria-label="Next match" title="下一处 (Enter)" disabled>↓</button>
+                    <button class="search-nav search-clear" id="contentSearchClear" aria-label="Clear search" title="清除">✕</button>
                 </div>
+                <p class="content-search-status" id="contentSearchStatus"></p>
             </div>
             <div class="conversation-detail" id="conversationDetailContainer"></div>
             <div class="outline-ribbon" id="outlineRibbon" title="大纲" aria-label="Outline"></div>

@@ -324,6 +324,39 @@ function bindTableColumnResize(): void {
   });
 }
 
+/** Per-conversation hit info for the table search (matches sidebar filter). */
+function conversationHitInfo(c: Conversation, term: string): { count: number; contexts: string[] } {
+  const q = term.toLowerCase();
+  let count = 0;
+  const contexts: string[] = [];
+  const scan = (content: string) => {
+    const lower = content.toLowerCase();
+    let i = lower.indexOf(q);
+    const win = 30;
+    while (i !== -1) {
+      count++;
+      if (contexts.length < 8) {
+        const start = Math.max(0, i - win);
+        const end = Math.min(content.length, i + q.length + win);
+        let pre = content.slice(start, i);
+        let post = content.slice(i + q.length, end);
+        if (start > 0) pre = '…' + pre.slice(Math.max(0, pre.length - (win - 1)));
+        if (end < content.length) post = post.slice(0, Math.max(0, win - 1)) + '…';
+        contexts.push(pre + content.slice(i, i + q.length) + post);
+      }
+      i = lower.indexOf(q, i + Math.max(1, q.length));
+    }
+  };
+  for (const n of c.nodes.values()) {
+    if (!n.message) continue;
+    for (const f of n.message.fragments) {
+      if (f.kind === 'text') scan(f.content);
+      else if (f.kind === 'search') for (const r of f.results) scan(r.title);
+    }
+  }
+  return { count, contexts };
+}
+
 /** Rebuild the full-page table rows (Explorer-like columns). */
 function renderTableList(list: Conversation[]): void {
   if (!tableMode) return;
@@ -332,6 +365,11 @@ function renderTableList(list: Conversation[]): void {
   $('tableStats').textContent = t('conversationCount', { count: list.length });
   refreshSortIndicators();
   tbody.innerHTML = '';
+  const table = $('tablePanel').querySelector('.conv-table');
+  const term = state.filters.search.trim();
+  const searching = term.length > 0;
+  table?.classList.toggle('searching', searching);
+
   for (const c of list) {
     const tr = document.createElement('tr');
     tr.classList.toggle('active', state.currentId === c.id);
@@ -369,6 +407,12 @@ function renderTableList(list: Conversation[]): void {
     charsTd.textContent = s.chars.toLocaleString();
     tr.appendChild(charsTd);
 
+    const hits = searching ? conversationHitInfo(c, term) : null;
+    const hitsTd = document.createElement('td');
+    hitsTd.className = 'col-hits';
+    hitsTd.textContent = hits ? String(hits.count) : '';
+    tr.appendChild(hitsTd);
+
     const actTd = document.createElement('td');
     actTd.className = 'col-actions';
     const openBtn = document.createElement('button');
@@ -390,6 +434,39 @@ function renderTableList(list: Conversation[]): void {
       else openConversation(c);
     });
     tbody.appendChild(tr);
+
+    // Snippet row(s) under this conversation while searching
+    if (hits && hits.contexts.length > 0) {
+      const sub = document.createElement('tr');
+      sub.className = 'hit-snippet-row';
+      const subTd = document.createElement('td');
+      subTd.colSpan = 8;
+      const box = document.createElement('div');
+      box.className = 'hit-snippets';
+      for (const ctx of hits.contexts) {
+        const line = document.createElement('div');
+        line.className = 'hit-snippet';
+        const at = ctx.indexOf(term);
+        if (at >= 0) {
+          line.append(document.createTextNode(ctx.slice(0, at)));
+          const m = document.createElement('mark');
+          m.textContent = ctx.slice(at, at + term.length);
+          line.append(m, document.createTextNode(ctx.slice(at + term.length)));
+        } else {
+          line.textContent = ctx;
+        }
+        box.appendChild(line);
+      }
+      if (hits.count > hits.contexts.length) {
+        const more = document.createElement('div');
+        more.className = 'hit-snippet-more';
+        more.textContent = t('searchMoreHits', { more: hits.count - hits.contexts.length });
+        box.appendChild(more);
+      }
+      subTd.appendChild(box);
+      sub.appendChild(subTd);
+      tbody.appendChild(sub);
+    }
   }
 }
 
@@ -1071,7 +1148,12 @@ interface ContentSearchHit {
   ord: number; // occurrence ordinal (1-based) within that node
 }
 
-let contentSearch: { term: string; hits: ContentSearchHit[]; current: number } | null = null;
+let contentSearch: {
+  term: string;
+  hits: ContentSearchHit[];
+  current: number;
+  primed: boolean; // true once the user navigated to a hit
+} | null = null;
 
 /** Detail element of a rendered conversation node (data-node-id). */
 function nodeElement(nodeId: string): HTMLElement | null {
@@ -1154,19 +1236,52 @@ function applyContentSearchDOM(term: string): void {
 }
 
 function updateContentSearchUI(): void {
-  const countEl = $('contentSearchCount');
+  const s = contentSearch;
+  const n = s?.hits.length ?? 0;
+  const hasQuery = !!s;
+  const box = document.querySelector('.content-toolbar .content-search');
+  box?.classList.toggle('has-query', hasQuery);
   const prev = $('contentSearchPrev') as HTMLButtonElement;
   const next = $('contentSearchNext') as HTMLButtonElement;
-  const n = contentSearch?.hits.length ?? 0;
-  if (n > 0) {
-    countEl.textContent = `${contentSearch!.current + 1}/${n}`;
-    prev.disabled = false;
-    next.disabled = false;
+  prev.disabled = !hasQuery || n === 0;
+  next.disabled = !hasQuery || n === 0;
+  const status = $('contentSearchStatus');
+  status.classList.toggle('active', hasQuery);
+  status.textContent = hasQuery
+    ? s!.primed && n > 0
+      ? t('hitsPosition', { pos: s!.current + 1, count: n })
+      : t('hitsCount', { count: n })
+    : '';
+}
+
+/** Map a DOM <mark> back to its global hit index (same node + ordinal). */
+function globalIndexOfMark(mark: Element): number {
+  const nodeEl = mark.closest('[data-node-id]') as HTMLElement | null;
+  if (!nodeEl || !contentSearch) return -1;
+  const nodeId = nodeEl.dataset.nodeId ?? '';
+  const ord = [...nodeEl.querySelectorAll('mark.highlight')].indexOf(mark as HTMLElement) + 1;
+  return contentSearch.hits.findIndex((h) => h.nodeId === nodeId && h.ord === ord);
+}
+
+/** For the first navigation: the hit nearest to what is currently on screen. */
+function nearestVisibleHitIndex(dir: 1 | -1): number {
+  const scroller = detailContainer();
+  const rc = scroller.getBoundingClientRect();
+  const visible = [...scroller.querySelectorAll('mark.highlight')].filter((m) => {
+    const r = m.getBoundingClientRect();
+    return r.height > 0 && r.width > 0; // skip content hidden in closed <details>
+  });
+  let pick: Element | undefined;
+  if (dir === 1) {
+    pick = visible.find((m) => m.getBoundingClientRect().top >= rc.top - 2) ?? visible[0];
   } else {
-    countEl.textContent = contentSearch ? '0/0' : '';
-    prev.disabled = true;
-    next.disabled = true;
+    pick = [...visible].reverse().find((m) => m.getBoundingClientRect().bottom <= rc.bottom + 2) ?? visible[visible.length - 1];
   }
+  if (pick) {
+    const gi = globalIndexOfMark(pick);
+    if (gi >= 0) return gi;
+  }
+  return dir === 1 ? 0 : (contentSearch?.hits.length ?? 1) - 1;
 }
 
 /** Move to hit `index` (wraps around); switches the branch if needed. */
@@ -1176,6 +1291,7 @@ function jumpToContentHit(index: number): void {
   if (!s || !conv || s.hits.length === 0) return;
   const total = s.hits.length;
   s.current = ((index % total) + total) % total;
+  s.primed = true;
   const hit = s.hits[s.current];
 
   let el = nodeElement(hit.nodeId);
@@ -1207,24 +1323,27 @@ function jumpToContentHit(index: number): void {
 
 function stepContentMatch(dir: 1 | -1): void {
   const s = contentSearch;
-  if (s && s.hits.length > 0) jumpToContentHit(s.current + dir);
+  if (!s || s.hits.length === 0) return;
+  if (!s.primed) jumpToContentHit(nearestVisibleHitIndex(dir));
+  else jumpToContentHit(s.current + dir);
 }
 
-/** Search the whole conversation (every branch); jump to the first hit. */
+/**
+ * Search the whole conversation (every branch). Typing only counts/highlights —
+ * no auto-jump; the user navigates with ↑/↓ (first click goes to the nearest
+ * visible hit).
+ */
 function runContentSearch(term: string): void {
-  contentSearch = null;
   clearContentSearchDOM();
   const conv = state.current;
   if (conv && term) {
     const hits = collectContentSearchHits(conv, term);
-    contentSearch = { term, hits, current: 0 };
+    contentSearch = { term, hits, current: 0, primed: false };
+    applyContentSearchDOM(term); // highlight what is visible in this branch
     updateContentSearchUI();
-    if (hits.length > 0) {
-      jumpToContentHit(0);
-      return;
-    }
     return;
   }
+  contentSearch = null;
   updateContentSearchUI();
 }
 
