@@ -6,7 +6,7 @@ import './styles/print.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import type { Conversation } from './types';
-import { pathToNode } from './model';
+import { pathToNode, walkBranch } from './model';
 import { normalizeExport, formatDateTime, ParseError } from './parser';
 import { t, setLanguage, getLanguage, applyTranslations } from './i18n';
 import { filterConversations, renderConversationList, type Filters, type SidebarHandlers } from './ui/sidebar';
@@ -359,7 +359,7 @@ function conversationHitInfo(c: Conversation, term: string): { count: number; co
 
 /** Rebuild the full-page table rows (Explorer-like columns). */
 function renderTableList(list: Conversation[]): void {
-  if (!tableMode) return;
+  if (currentView !== 'list' || !listIsTable()) return;
   const tbody = $('tableBody');
   if (!tbody) return;
   $('tableStats').textContent = t('conversationCount', { count: list.length });
@@ -372,6 +372,7 @@ function renderTableList(list: Conversation[]): void {
 
   for (const c of list) {
     const tr = document.createElement('tr');
+    tr.dataset.id = c.id;
     tr.classList.toggle('active', state.currentId === c.id);
 
     const checkTd = document.createElement('td');
@@ -487,70 +488,11 @@ function openConversation(c: Conversation): void {
   document.documentElement.scrollTop = 0;
 }
 
-/** Conversation info panel shown on the list page (wide screens). */
-function updateInfoPanel(c: Conversation | null): void {
-  const panel = $('listInfoPanel');
-  if (!c) {
-    panel.innerHTML = `<div class="list-info-empty">${escapeText(t('selectConversation'))}</div>`;
-    return;
-  }
-  let turns = 0;
-  let messages = 0;
-  let chars = 0;
-  for (const n of c.nodes.values()) {
-    if (!n.message) continue;
-    messages++;
-    const types = n.message.fragments.map((f) => f.type);
-    if (types.includes('REQUEST') || types.includes('FILE')) turns++;
-    for (const f of n.message.fragments) {
-      if (f.kind === 'text') chars += f.content.length;
-    }
-  }
-  panel.innerHTML = `
-    <div class="list-info-title" id="listInfoTitle">${escapeText(c.title || t('noTitle'))}</div>
-    <div class="list-info-meta">
-      <span><b>${escapeText(t('startTime'))}</b>${escapeText(formatDateTime(c.insertedAt))}</span>
-      <span><b>${escapeText(t('endTime'))}</b>${escapeText(formatDateTime(c.updatedAt))}</span>
-      <span><b>${escapeText(t('turnCount'))}</b>${turns}</span>
-      <span><b>${escapeText(t('messageCount'))}</b>${messages}</span>
-      <span><b>${escapeText(t('charCount'))}</b>${chars.toLocaleString()}</span>
-    </div>
-    <div class="list-info-actions">
-      <button id="listInfoEditBtn" class="btn-ghost"><i class="fa-regular fa-pen-to-square"></i> ${escapeText(t('editTitle'))}</button>
-      <button id="listInfoOpenBtn"><i class="fa-regular fa-folder-open"></i> ${escapeText(t('openConversation'))}</button>
-      <button id="listInfoDeleteBtn" class="btn-danger"><i class="fa-regular fa-trash-can"></i> ${escapeText(t('deleteConversation'))}</button>
-    </div>
-  `;
-  const titleEl = panel.querySelector('#listInfoTitle') as HTMLElement;
-  titleEl.addEventListener('dblclick', () => {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'edit-input';
-    input.value = c.title || '';
-    titleEl.innerHTML = '';
-    titleEl.appendChild(input);
-    input.focus();
-    const finish = (save: boolean) => {
-      if (save) {
-        sidebarHandlers.onEditTitle(c, input.value.trim());
-      } else {
-        titleEl.textContent = c.title || t('noTitle');
-      }
-    };
-    input.addEventListener('blur', () => finish(true));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') input.blur();
-      else if (e.key === 'Escape') {
-        finish(false);
-        input.blur();
-      }
-    });
-  });
-  panel.querySelector('#listInfoEditBtn')?.addEventListener('click', () => {
-    titleEl.dispatchEvent(new MouseEvent('dblclick'));
-  });
-  panel.querySelector('#listInfoOpenBtn')?.addEventListener('click', () => openConversation(c));
-  panel.querySelector('#listInfoDeleteBtn')?.addEventListener('click', () => sidebarHandlers.onDelete(c));
+/** (removed) list-info detail panel — wide list is the table view now, and
+ *  conversation details are shown by the hover card instead. Kept as a no-op
+ *  so old call sites don't need touching. */
+function updateInfoPanel(_c: Conversation | null): void {
+  return;
 }
 
 function renderCurrent(): void {
@@ -654,8 +596,11 @@ function closeSaveModal(): void {
 let currentView: 'list' | 'content' = 'list';
 let outlinePinned = false;
 let outlineHideTimer: number | undefined;
-/** Full-page table list toggle (only affects the list page). */
-let tableMode = false;
+
+/** Wide screens show the list page as the full table; phones use compact cards. */
+function listIsTable(): boolean {
+  return window.innerWidth > 900;
+}
 
 /** Hover-capable pointer (mouse/trackpad). Touch devices never auto-reveal. */
 const canHover = typeof window.matchMedia === 'function' && window.matchMedia('(hover: hover)').matches;
@@ -669,10 +614,13 @@ function setView(view: 'list' | 'content'): void {
   if (view === 'content') clearContentSearch();
 }
 
+/** Single dynamic view button: reading ⇄ list (label says where it goes). */
 function updateViewButtons(): void {
-  $('viewListBtn').classList.toggle('active', currentView === 'list');
-  $('viewContentBtn').classList.toggle('active', currentView === 'content');
-  $('tableViewBtn').classList.toggle('active', tableMode && currentView === 'list');
+  const btn = $('viewToggleBtn');
+  const icon = btn.querySelector('i');
+  const span = btn.querySelector('span');
+  if (icon) icon.className = currentView === 'content' ? 'fa-solid fa-table-list' : 'fa-regular fa-file-lines';
+  if (span) span.textContent = currentView === 'content' ? t('tableView') : t('viewContent');
 }
 
 function toggleOutline(): void {
@@ -933,9 +881,6 @@ function bindEvents(): void {
     edgeCheck.checked = canHover && localStorage.getItem('dscr-edge-reveal') !== '0';
     edgeCheck.disabled = !canHover;
     ($('hcCheck') as HTMLInputElement).checked = document.documentElement.hasAttribute('data-hc');
-    const fontSel = $('fontSizeSelect') as HTMLSelectElement;
-    const savedScale = localStorage.getItem('dscr-font-scale') || '1';
-    fontSel.value = savedScale;
     $('settingsModal').classList.add('active');
     $('settingsModalOverlay').classList.add('active');
   });
@@ -955,10 +900,9 @@ function bindEvents(): void {
     applyHighContrast(on);
     localStorage.setItem('dscr-hc', on ? '1' : '0');
   });
-  $('fontSizeSelect').addEventListener('change', (e) => {
-    const scale = (e.target as HTMLSelectElement).value;
-    applyFontScale(scale);
-    localStorage.setItem('dscr-font-scale', scale);
+  $('fontResetBtn').addEventListener('click', () => {
+    localStorage.removeItem('dscr-font-scale');
+    applyFontScale('1');
   });
 
   // Language (button + modal)
@@ -994,18 +938,17 @@ function bindEvents(): void {
   $('langZhBtn').addEventListener('click', () => applyLang('zh-CN'));
   $('langEnBtn').addEventListener('click', () => applyLang('en'));
 
-  // View switching (list page / reading page)
-  $('viewListBtn').addEventListener('click', () => setView('list'));
-  $('viewContentBtn').addEventListener('click', () => {
-    if (state.current) setView('content');
+  // Single view toggle: 列表视图 (list page) ⇄ 正文视图 (reading page).
+  // The wide list page IS the full-page table; phones show the compact cards.
+  $('viewToggleBtn').addEventListener('click', () => {
+    if (currentView === 'content') {
+      setView('list');
+      refreshList();
+    } else if (state.current) {
+      setView('content');
+    }
   });
-
-  // Full-page table list toggle
-  $('tableViewBtn').addEventListener('click', () => {
-    tableMode = !tableMode;
-    document.body.classList.toggle('table-mode', tableMode);
-    setTableBatchButtons();
-    syncTableFiltersUI();
+  $('contentBackBtn').addEventListener('click', () => {
     setView('list');
     refreshList();
   });
@@ -1069,6 +1012,10 @@ function bindEvents(): void {
   // Font size steppers (A− / A+), always available
   $('fontDecBtn').addEventListener('click', () => adjustFont(-0.125));
   $('fontIncBtn').addEventListener('click', () => adjustFont(0.125));
+
+  // Hover details card (wide + mouse) and wide<->narrow adaptation
+  bindConvHover();
+  bindViewportAdapt();
 
   // Filters collapse (list page)
   $('filterToggle').addEventListener('click', () => {
@@ -1395,8 +1342,103 @@ function adjustFont(delta: number): void {
   const next = Math.min(1.5, Math.max(0.75, Math.round((cur + delta) * 1000) / 1000));
   applyFontScale(String(next));
   localStorage.setItem('dscr-font-scale', String(next));
-  const sel = $('fontSizeSelect') as HTMLSelectElement | null;
-  if (sel && [...sel.options].some((o) => o.value === String(next))) sel.value = String(next);
+}
+
+// ---------------------------------------------------------------------------
+// Hover card (wide screens, mouse only) + viewport adaptation
+// ---------------------------------------------------------------------------
+
+const hoverCard = document.createElement('div');
+hoverCard.className = 'conv-hover-card';
+hoverCard.hidden = true;
+document.body.appendChild(hoverCard);
+
+/** First user request text of a conversation (for the hover preview). */
+function convPreviewText(c: Conversation): string {
+  const chain = walkBranch(c, c.root, new Map(), 'first');
+  for (const n of chain) {
+    if (!n.message) continue;
+    for (const f of n.message.fragments) {
+      if (f.kind === 'text' && f.type === 'REQUEST') {
+        const s = f.content.replace(/\s+/g, ' ').trim();
+        if (s) return s;
+      }
+    }
+  }
+  return '';
+}
+
+function showHoverCard(c: Conversation, anchor: DOMRect): void {
+  if (window.innerWidth <= 900) return; // never on narrow screens
+  const s = convStats(c);
+  const preview = convPreviewText(c);
+  hoverCard.innerHTML = `
+    <div class="conv-hover-title">${escapeText(c.title || t('noTitle'))}</div>
+    <div class="conv-hover-meta">
+      <span><b>${escapeText(t('startTime'))}</b>${escapeText(formatDateTime(c.insertedAt))}</span>
+      <span><b>${escapeText(t('endTime'))}</b>${escapeText(formatDateTime(c.updatedAt))}</span>
+      <span><b>${escapeText(t('turnCount'))}</b>${s.turns} · <b>${escapeText(t('messageCount'))}</b>${s.messages} · <b>${escapeText(t('charCount'))}</b>${s.chars.toLocaleString()}</span>
+    </div>
+    ${preview ? `<div class="conv-hover-preview">${escapeText(preview.length > 240 ? preview.slice(0, 240) + '…' : preview)}</div>` : ''}
+  `;
+  hoverCard.hidden = false;
+  const cw = hoverCard.offsetWidth;
+  const ch = hoverCard.offsetHeight;
+  let left = anchor.left + 14;
+  if (left + cw > window.innerWidth - 8) left = anchor.right - cw - 14;
+  left = Math.max(8, left);
+  let top = anchor.bottom + 8;
+  if (top + ch > window.innerHeight - 8) top = Math.max(8, anchor.top - ch - 8);
+  hoverCard.style.left = `${left}px`;
+  hoverCard.style.top = `${top}px`;
+}
+
+function hideHoverCard(): void {
+  hoverCard.hidden = true;
+}
+
+/** Show a details card while hovering a conversation (sidebar item or table row). */
+function bindConvHover(): void {
+  if (!canHover) return;
+  let hideTimer: number | undefined;
+  const showFor = (el: Element) => {
+    const id = el.getAttribute('data-id');
+    if (!id) return;
+    const c = state.conversations.find((x) => x.id === id);
+    if (!c) return;
+    showHoverCard(c, el.getBoundingClientRect());
+  };
+  const containers = ['conversationsContainer', 'tableBody'].map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+  for (const box of containers) {
+    box.addEventListener('mouseover', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('[data-id]');
+      if (!item) return;
+      window.clearTimeout(hideTimer);
+      showFor(item);
+    });
+    box.addEventListener('mouseleave', () => {
+      hideTimer = window.setTimeout(hideHoverCard, 120);
+    });
+  }
+  // Dismiss while the underlying list scrolls
+  for (const box of containers) box.addEventListener('scroll', hideHoverCard);
+  document.addEventListener('scroll', hideHoverCard, true);
+}
+
+/** Wide<->narrow crossing: list table only exists wide; when narrowing, move
+ *  the user back into the reading view (their rule), or re-render the cards. */
+function bindViewportAdapt(): void {
+  let lastWide = listIsTable();
+  window.addEventListener('resize', () => {
+    const wide = listIsTable();
+    if (wide === lastWide) return;
+    lastWide = wide;
+    hideHoverCard();
+    if (currentView === 'list') {
+      if (!wide && state.current) setView('content');
+      else refreshList();
+    }
+  });
 }
 
 function initLanguage(): void {

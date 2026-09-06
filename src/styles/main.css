@@ -116,9 +116,12 @@ header {
 .header-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 /* Quick font-size steppers (A− / A+) always reachable */
 .font-steps { display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; }
-.font-steps button { width: auto; padding: 2px 9px; font-size: 0.85rem; font-weight: bold; background: var(--card-bg); color: var(--text-color); }
+/* Font steppers: bigger & easier to hit */
+.font-steps button { width: auto; padding: 4px 14px; font-size: 1.05rem; font-weight: bold; background: var(--card-bg); color: var(--text-color); }
 .font-steps button + button { border-left: 1px solid var(--border-color); }
 .font-steps button:hover { background: var(--primary-color); color: #fff; }
+/* Elements shown only on wide / only on narrow screens */
+.hide-wide { display: none !important; }
 .language-selector { display: flex; align-items: center; gap: 8px; }
 .print-option {
   display: flex;
@@ -190,9 +193,8 @@ body.view-list .list-info { display: flex; }
   min-width: 0;
   background: var(--card-bg);
 }
-body.view-list.table-mode .table-panel { display: flex; }
-body.view-list.table-mode .sidebar,
-body.view-list.table-mode .list-info { display: none; }
+body.view-list .table-panel { display: flex; }
+body.view-list .sidebar { display: none; }
 .table-toolbar {
   display: flex;
   justify-content: space-between;
@@ -261,7 +263,7 @@ body.view-list.table-mode .list-info { display: none; }
 /* Sortable column headers with ↑/↓ indicator and a draggable resize grip */
 .conv-table th[data-sort] { cursor: pointer; user-select: none; }
 .conv-table th[data-sort] .sort-arrow { margin-left: 6px; font-size: 0.7rem; color: var(--primary-color); }
-.conv-table th { position: relative; }
+.conv-table th { position: relative; border-right: 1px solid rgba(128, 128, 128, 0.18); }
 .conv-table th:not(.col-check):not(.col-actions)::after {
   content: '';
   position: absolute;
@@ -318,6 +320,27 @@ body.view-content .content-area.collapsed { display: flex; }
   font-variant-numeric: tabular-nums;
 }
 .content-search-status.active { display: block; }
+/* Hover details card over conversations (wide screens, mouse only) */
+.conv-hover-card {
+  position: fixed;
+  z-index: 300;
+  max-width: 440px;
+  min-width: 250px;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+.conv-hover-title { font-weight: bold; color: var(--primary-color); margin-bottom: 6px; word-break: break-word; }
+.conv-hover-meta { font-size: 0.78rem; color: var(--muted-color); display: flex; flex-direction: column; gap: 2px; }
+.conv-hover-meta b { color: var(--text-color); font-weight: 600; margin-right: 4px; }
+.conv-hover-preview {
+  margin-top: 6px; padding-top: 6px; font-size: 0.8rem; color: var(--text-color);
+  border-top: 1px dashed var(--border-color); max-height: 100px; overflow: hidden; word-break: break-word;
+}
 mark.highlight { background: #ffe082; color: #222; border-radius: 2px; padding: 0 1px; }
 mark.highlight.search-current { background: #ffb74d; outline: 2px solid var(--primary-color); }
 [data-theme="dark"] mark.highlight { background: #a18000; color: #fff; }
@@ -885,6 +908,18 @@ body.view-content .content-toolbar { display: block; }
   .header-controls { gap: 6px; }
   .header-controls button { min-width: 40px; width: 40px; height: 40px; padding: 0; font-size: 1.1rem; }
   .header-controls button span { display: none; }
+  .hide-narrow { display: none !important; }
+  .hide-wide { display: inline-flex !important; }
+  /* Phones keep the compact card list on the list page (table is too cramped);
+     the reading view already uses the overlay sidebar there. */
+  body.view-list .table-panel { display: none; }
+  body.view-list .sidebar { display: flex; }
+  .content-back {
+    flex: none; width: 36px; height: 36px; font-size: 1.5rem; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--card-bg); color: var(--text-color);
+    border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;
+  }
 
   .sidebar { width: 100% !important; border-right: none; }
   .list-info { display: none !important; }

@@ -86,13 +86,8 @@
                 <span data-i18n="edgeReveal"></span>
             </label>
             <p class="print-option-hint" data-i18n="edgeRevealHint"></p>
-            <label class="print-option" for="fontSizeSelect"><span data-i18n="fontSize"></span></label>
-            <select id="fontSizeSelect" style="width:100%; margin-bottom:10px;">
-                <option value="0.875" data-i18n="fontSmall"></option>
-                <option value="1" data-i18n="fontNormal"></option>
-                <option value="1.125" data-i18n="fontLarge"></option>
-                <option value="1.25" data-i18n="fontXLarge"></option>
-            </select>
+            <p class="print-option-hint" data-i18n="fontSizeHint"></p>
+            <button id="fontResetBtn" style="width:100%;" data-i18n="fontReset"></button>
             <label class="print-option">
                 <input type="checkbox" id="hcCheck">
                 <span data-i18n="highContrast"></span>
@@ -141,13 +136,7 @@
             <button id="uploadModalBtn" aria-label="Upload JSON">
                 <i class="fa-solid fa-folder-open"></i> <span data-i18n="uploadJSON"></span>
             </button>
-            <button id="viewListBtn" aria-label="Conversation list">
-                <i class="fa-solid fa-list"></i> <span data-i18n="viewList"></span>
-            </button>
-            <button id="viewContentBtn" aria-label="Reading view">
-                <i class="fa-regular fa-file-lines"></i> <span data-i18n="viewContent"></span>
-            </button>
-            <button id="tableViewBtn" aria-label="Full list">
+            <button id="viewToggleBtn" class="hide-narrow" aria-label="Toggle list / reading">
                 <i class="fa-solid fa-table-list"></i> <span data-i18n="tableView"></span>
             </button>
             <button id="toggleOutlineBtn" aria-label="Toggle Outline">
@@ -232,10 +221,10 @@
             </div>
         </aside>
 
-        <section class="list-info" id="listInfoPanel" hidden></section>
+        <div class="resize-handle" id="resizeHandle" aria-hidden="true"></div>
 
-        <!-- Full-page conversation list (table view, Explorer-like) -->
-        <section class="table-panel" id="tablePanel" hidden>
+        <!-- Full-page conversation list (table view, wide screens) -->
+        <section class="table-panel" id="tablePanel">
             <div class="table-toolbar">
                 <div class="table-filters">
                     <div class="search-box">
@@ -287,6 +276,7 @@
 
         <section class="content-area collapsed" id="contentArea">
             <div class="content-toolbar" id="contentToolbar" hidden>
+                <button id="contentBackBtn" class="content-back hide-wide" aria-label="Back to list" title="返回列表">‹</button>
                 <div class="search-box content-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="mobileSearchInput" data-i18n-placeholder="searchInContent" aria-label="Search in conversation">
