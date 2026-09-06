@@ -229,9 +229,13 @@
 
         <section class="content-area collapsed" id="contentArea">
             <div class="content-toolbar" id="contentToolbar" hidden>
-                <div class="search-box">
+                <div class="search-box content-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="mobileSearchInput" data-i18n-placeholder="searchInContent" aria-label="Search in conversation">
+                    <span class="search-result-count" id="contentSearchCount"></span>
+                    <button class="search-nav" id="contentSearchPrev" aria-label="Previous match" disabled><i class="fa-solid fa-chevron-up"></i></button>
+                    <button class="search-nav" id="contentSearchNext" aria-label="Next match" disabled><i class="fa-solid fa-chevron-down"></i></button>
+                    <button class="search-nav" id="contentSearchClear" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
             <div class="conversation-detail" id="conversationDetailContainer"></div>

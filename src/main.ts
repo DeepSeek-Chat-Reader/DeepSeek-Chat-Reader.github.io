@@ -6,6 +6,7 @@ import './styles/print.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import type { Conversation } from './types';
+import { pathToNode } from './model';
 import { normalizeExport, formatDateTime, ParseError } from './parser';
 import { t, setLanguage, getLanguage, applyTranslations } from './i18n';
 import { filterConversations, renderConversationList, type Filters, type SidebarHandlers } from './ui/sidebar';
@@ -313,6 +314,8 @@ function renderCurrent(): void {
       renderCurrent();
     },
   });
+  // Keep in-conversation highlights visible across re-renders.
+  ensureContentSearchAfterRender();
 }
 
 function renderEmptyDetail(): void {
@@ -731,15 +734,28 @@ function bindEvents(): void {
     $('searchFilters').classList.toggle('collapsed');
   });
 
-  // In-conversation search (reading view, narrow screens)
+  // In-conversation search (reading view): live across all branches, with
+  // ↑/↓ navigation between hits.
   const mobileSearch = $('mobileSearchInput') as HTMLInputElement;
   let mobileSearchTimer: number | undefined;
   mobileSearch.addEventListener('input', () => {
     window.clearTimeout(mobileSearchTimer);
     mobileSearchTimer = window.setTimeout(() => {
-      highlightInContent(mobileSearch.value.trim());
+      runContentSearch(mobileSearch.value.trim());
     }, 200);
   });
+  mobileSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      stepContentMatch(e.shiftKey ? -1 : 1);
+    } else if (e.key === 'Escape') {
+      clearContentSearch();
+      mobileSearch.blur();
+    }
+  });
+  $('contentSearchNext').addEventListener('click', () => stepContentMatch(1));
+  $('contentSearchPrev').addEventListener('click', () => stepContentMatch(-1));
+  $('contentSearchClear').addEventListener('click', clearContentSearch);
 
   // Filters
   const searchInput = $('searchInput') as HTMLInputElement;
@@ -782,32 +798,78 @@ function findSelectedConversation(): Conversation | null {
   return state.conversations.find((c) => c.id === state.currentId) ?? null;
 }
 
-/**
- * Highlight search terms within the currently open conversation
- * (in-conversation search on the reading view).
- */
-function highlightInContent(term: string): void {
-  const root = detailContainer();
-  root.querySelectorAll('mark.highlight').forEach((m) => {
-    const parent = m.parentNode;
-    if (parent) {
-      parent.replaceChild(document.createTextNode(m.textContent ?? ''), m);
-      parent.normalize();
+// ---------------------------------------------------------------------------
+// In-conversation search (cross-branch, with prev/next navigation)
+// ---------------------------------------------------------------------------
+
+interface ContentSearchHit {
+  nodeId: string;
+  ord: number; // occurrence ordinal (1-based) within that node
+}
+
+let contentSearch: { term: string; hits: ContentSearchHit[]; current: number } | null = null;
+
+/** Detail element of a rendered conversation node (data-node-id). */
+function nodeElement(nodeId: string): HTMLElement | null {
+  return detailContainer().querySelector<HTMLElement>(`[data-node-id="${CSS.escape(nodeId)}"]`);
+}
+
+/** Every text occurrence of `term` in the whole conversation (all branches),
+ *  ordered by depth-first traversal of the message tree. */
+function collectContentSearchHits(conv: Conversation, term: string): ContentSearchHit[] {
+  const q = term.toLowerCase();
+  const hits: ContentSearchHit[] = [];
+  const visit = (nodeId: string) => {
+    const node = conv.nodes.get(nodeId);
+    if (node?.message) {
+      let n = 0;
+      for (const f of node.message.fragments) {
+        if (f.kind !== 'text') continue;
+        const t = f.content.toLowerCase();
+        let idx = t.indexOf(q);
+        while (idx !== -1) {
+          n++;
+          hits.push({ nodeId, ord: n });
+          idx = t.indexOf(q, idx + Math.max(1, q.length));
+        }
+      }
     }
-  });
+    for (const cid of node?.childrenIds ?? []) visit(cid);
+  };
+  visit(conv.root.id);
+  return hits;
+}
+
+/** Remove <mark> highlights from the current detail DOM. */
+function clearContentSearchDOM(): void {
+  detailContainer()
+    .querySelectorAll('mark.highlight')
+    .forEach((m) => {
+      const parent = m.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(m.textContent ?? ''), m);
+        parent.normalize();
+      }
+    });
+}
+
+/** Wrap every occurrence of `term` (case-insensitive) in <mark class="highlight">. */
+function applyContentSearchDOM(term: string): void {
+  clearContentSearchDOM();
   if (!term) return;
+  const root = detailContainer();
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${escaped})`, 'gi');
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
+  const textNodes: Text[] = [];
   while (walker.nextNode()) {
     const node = walker.currentNode as Text;
     if (node.nodeValue && regex.test(node.nodeValue)) {
-      nodes.push(node);
+      textNodes.push(node);
     }
     regex.lastIndex = 0;
   }
-  for (const node of nodes) {
+  for (const node of textNodes) {
     const frag = document.createDocumentFragment();
     let last = 0;
     regex.lastIndex = 0;
@@ -827,10 +889,92 @@ function highlightInContent(term: string): void {
   }
 }
 
+function updateContentSearchUI(): void {
+  const countEl = $('contentSearchCount');
+  const prev = $('contentSearchPrev') as HTMLButtonElement;
+  const next = $('contentSearchNext') as HTMLButtonElement;
+  const n = contentSearch?.hits.length ?? 0;
+  if (n > 0) {
+    countEl.textContent = `${contentSearch!.current + 1}/${n}`;
+    prev.disabled = false;
+    next.disabled = false;
+  } else {
+    countEl.textContent = contentSearch ? '0/0' : '';
+    prev.disabled = true;
+    next.disabled = true;
+  }
+}
+
+/** Move to hit `index` (wraps around); switches the branch if needed. */
+function jumpToContentHit(index: number): void {
+  const s = contentSearch;
+  const conv = state.current;
+  if (!s || !conv || s.hits.length === 0) return;
+  const total = s.hits.length;
+  s.current = ((index % total) + total) % total;
+  const hit = s.hits[s.current];
+
+  let el = nodeElement(hit.nodeId);
+  if (!el) {
+    // Hit lives on another branch -> switch the reading view onto it.
+    state.branchPath = pathToNode(conv, hit.nodeId);
+    renderCurrent();
+    el = nodeElement(hit.nodeId);
+  }
+  if (!el || el.querySelectorAll('mark.highlight').length === 0) {
+    applyContentSearchDOM(s.term); // DOM was rebuilt / marks lost -> re-mark
+  }
+
+  let target: HTMLElement | null = nodeElement(hit.nodeId);
+  if (target) {
+    const marks = [...target.querySelectorAll('mark.highlight')];
+    target = marks.length ? marks[Math.min(hit.ord - 1, marks.length - 1)] : target;
+  }
+  updateContentSearchUI();
+  if (!target) return;
+  // Reveal content inside collapsed thinking <details>.
+  for (let p: HTMLElement | null = target; p; p = p.parentElement) {
+    if (p.tagName === 'DETAILS') (p as HTMLDetailsElement).open = true;
+  }
+  document.querySelectorAll('mark.search-current').forEach((m) => m.classList.remove('search-current'));
+  target.classList.add('search-current');
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function stepContentMatch(dir: 1 | -1): void {
+  const s = contentSearch;
+  if (s && s.hits.length > 0) jumpToContentHit(s.current + dir);
+}
+
+/** Search the whole conversation (every branch); jump to the first hit. */
+function runContentSearch(term: string): void {
+  contentSearch = null;
+  clearContentSearchDOM();
+  const conv = state.current;
+  if (conv && term) {
+    const hits = collectContentSearchHits(conv, term);
+    contentSearch = { term, hits, current: 0 };
+    updateContentSearchUI();
+    if (hits.length > 0) {
+      jumpToContentHit(0);
+      return;
+    }
+    return;
+  }
+  updateContentSearchUI();
+}
+
 function clearContentSearch(): void {
   const input = $('mobileSearchInput') as HTMLInputElement;
   if (input.value) input.value = '';
-  highlightInContent('');
+  contentSearch = null;
+  clearContentSearchDOM();
+  updateContentSearchUI();
+}
+
+/** Re-apply highlights after the detail DOM was rebuilt with an active search. */
+function ensureContentSearchAfterRender(): void {
+  if (contentSearch?.term) applyContentSearchDOM(contentSearch.term);
 }
 
 function updateSortButtons(): void {

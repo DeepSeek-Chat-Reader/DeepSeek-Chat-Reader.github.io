@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { normalizeExport } from '../src/parser';
-import { collectSearchResults, walkBranch } from '../src/model';
+import { collectSearchResults, walkBranch, pathToNode } from '../src/model';
 import { collectCitations, maskCitations, restoreCitations } from '../src/citation';
 import { renderMarkdown } from '../src/render/markdown';
 import { serializeConversations } from '../src/storage';
@@ -230,5 +230,17 @@ describe.skipIf(!newConvs)('model: branch walking', () => {
     expect(ids).toContain('10');
     expect(ids).toContain('11');
     expect(ids).toContain('14');
+  });
+
+  it('pathToNode recovers the branch choices that lead to a deep node', () => {
+    const path = pathToNode(testConv, '14');
+    expect([...path.entries()].sort()).toEqual([
+      ['3', 1],
+      ['5', 1],
+      ['8', 1],
+    ]);
+    const chain = walkBranch(testConv, testConv.root, path, 'first');
+    const ids = chain.map((n) => n.id);
+    expect(ids[ids.length - 1]).toBe('14');
   });
 });

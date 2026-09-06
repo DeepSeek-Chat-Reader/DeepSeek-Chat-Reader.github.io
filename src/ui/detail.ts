@@ -76,6 +76,7 @@ export function renderDetail(
     let el: HTMLElement | null = null;
     if (node.message) {
       el = renderMessage(node);
+      el.dataset.nodeId = node.id;
       messageEls.push(el);
       chainContainer.appendChild(el);
     } else {

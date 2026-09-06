@@ -61,6 +61,28 @@ export function walkMessageChain(
 }
 
 /**
+ * Branch choices that lead from the root to `targetId`:
+ * for every ancestor with several children, the child index on the route.
+ * Can be used to switch the reading view onto the chain containing a node.
+ */
+export function pathToNode(conv: Conversation, targetId: string): Map<string, number> {
+  const path = new Map<string, number>();
+  const target = conv.nodes.get(targetId);
+  if (!target) return path;
+  let cur: Node | undefined = target;
+  while (cur && cur.parentId) {
+    const parent = conv.nodes.get(cur.parentId);
+    if (!parent) break;
+    if (parent.childrenIds.length > 1) {
+      const idx = parent.childrenIds.indexOf(cur.id);
+      if (idx >= 0) path.set(parent.id, idx);
+    }
+    cur = parent;
+  }
+  return path;
+}
+
+/**
  * Collect all search results (SEARCH + TOOL_SEARCH fragments, in fragment
  * order) of a message. Citation markers index into this merged list.
  */
