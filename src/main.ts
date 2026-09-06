@@ -144,6 +144,7 @@ function refreshList(): void {
   const count = $('conversationCount');
   stats.textContent = t('searchResults', { count: filtered.length });
   count.textContent = t('conversationCount', { count: filtered.length });
+  renderTableList(filtered);
 }
 
 const sidebarHandlers: SidebarHandlers = {
@@ -203,6 +204,122 @@ const sidebarHandlers: SidebarHandlers = {
     saveToStorage(state.conversations);
   },
 };
+
+// ---------------------------------------------------------------------------
+// Full-page conversation list (table view)
+// ---------------------------------------------------------------------------
+
+interface ConvStats {
+  turns: number;
+  messages: number;
+  chars: number;
+}
+
+function convStats(c: Conversation): ConvStats {
+  let turns = 0;
+  let messages = 0;
+  let chars = 0;
+  for (const n of c.nodes.values()) {
+    if (!n.message) continue;
+    messages++;
+    const types = n.message.fragments.map((f) => f.type);
+    if (types.includes('REQUEST') || types.includes('FILE')) turns++;
+    for (const f of n.message.fragments) {
+      if (f.kind === 'text') chars += f.content.length;
+    }
+  }
+  return { turns, messages, chars };
+}
+
+/** Sync the table toolbar batch buttons with state.batchMode. */
+function setTableBatchButtons(): void {
+  $('tableBatchBtn').hidden = state.batchMode;
+  $('tableSelectAllBtn').hidden = !state.batchMode;
+  $('tableInvertBtn').hidden = !state.batchMode;
+  $('tableDeleteBtn').hidden = !state.batchMode;
+  $('tableCancelBtn').hidden = !state.batchMode;
+}
+
+/** Reflect the current sort field/direction in the table toolbar controls. */
+function syncTableSortUI(): void {
+  const sel = $('tableSortField') as HTMLSelectElement;
+  sel.value = state.filters.sortField;
+  const btn = $('tableSortDirBtn');
+  const asc = state.filters.sortDir === 'asc';
+  btn.classList.toggle('active', asc);
+  const icon = btn.querySelector('i');
+  if (icon) icon.className = asc ? 'fa-solid fa-arrow-up-wide-short' : 'fa-solid fa-arrow-down-wide-short';
+  const span = btn.querySelector('span');
+  if (span) span.textContent = t(asc ? 'ascending' : 'descending');
+}
+
+/** Rebuild the full-page table rows (Explorer-like columns). */
+function renderTableList(list: Conversation[]): void {
+  if (!tableMode) return;
+  const tbody = $('tableBody');
+  if (!tbody) return;
+  $('tableStats').textContent = t('conversationCount', { count: list.length });
+  tbody.innerHTML = '';
+  for (const c of list) {
+    const tr = document.createElement('tr');
+    tr.classList.toggle('active', state.currentId === c.id);
+
+    const checkTd = document.createElement('td');
+    checkTd.className = 'col-check';
+    if (state.batchMode) {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = state.selected.has(c.id);
+      cb.addEventListener('change', () => sidebarHandlers.onToggleSelect(c.id));
+      checkTd.appendChild(cb);
+    }
+    tr.appendChild(checkTd);
+
+    const titleText = c.title || t('noTitle');
+    const titleTd = document.createElement('td');
+    titleTd.className = 'col-title';
+    titleTd.textContent = titleText;
+    titleTd.title = titleText;
+    tr.appendChild(titleTd);
+
+    const startTd = document.createElement('td');
+    startTd.textContent = formatDateTime(c.insertedAt);
+    tr.appendChild(startTd);
+    const endTd = document.createElement('td');
+    endTd.textContent = formatDateTime(c.updatedAt);
+    tr.appendChild(endTd);
+
+    const s = convStats(c);
+    const turnsTd = document.createElement('td');
+    turnsTd.textContent = String(s.turns);
+    tr.appendChild(turnsTd);
+    const charsTd = document.createElement('td');
+    charsTd.textContent = s.chars.toLocaleString();
+    tr.appendChild(charsTd);
+
+    const actTd = document.createElement('td');
+    actTd.className = 'col-actions';
+    const openBtn = document.createElement('button');
+    openBtn.textContent = t('openConversation');
+    openBtn.addEventListener('click', () => openConversation(c));
+    const delBtn = document.createElement('button');
+    delBtn.textContent = t('deleteConversation');
+    delBtn.className = 'btn-danger';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebarHandlers.onDelete(c);
+    });
+    actTd.append(openBtn, delBtn);
+    tr.appendChild(actTd);
+
+    tr.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button,input')) return;
+      if (state.batchMode) sidebarHandlers.onToggleSelect(c.id);
+      else openConversation(c);
+    });
+    tbody.appendChild(tr);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Detail rendering
@@ -347,6 +464,7 @@ function enterBatchMode(): void {
   state.batchMode = true;
   $('batchActions').hidden = false;
   setBatchButtons();
+  setTableBatchButtons();
   refreshList();
 }
 
@@ -354,6 +472,7 @@ function exitBatchMode(): void {
   state.batchMode = false;
   state.selected = new Set();
   setBatchButtons();
+  setTableBatchButtons();
   $('batchActions').hidden = true;
   refreshList();
 }
@@ -386,6 +505,8 @@ function closeSaveModal(): void {
 let currentView: 'list' | 'content' = 'list';
 let outlinePinned = false;
 let outlineHideTimer: number | undefined;
+/** Full-page table list toggle (only affects the list page). */
+let tableMode = false;
 
 /** Hover-capable pointer (mouse/trackpad). Touch devices never auto-reveal. */
 const canHover = typeof window.matchMedia === 'function' && window.matchMedia('(hover: hover)').matches;
@@ -402,6 +523,7 @@ function setView(view: 'list' | 'content'): void {
 function updateViewButtons(): void {
   $('viewListBtn').classList.toggle('active', currentView === 'list');
   $('viewContentBtn').classList.toggle('active', currentView === 'content');
+  $('tableViewBtn').classList.toggle('active', tableMode && currentView === 'list');
 }
 
 function toggleOutline(): void {
@@ -729,6 +851,46 @@ function bindEvents(): void {
     if (state.current) setView('content');
   });
 
+  // Full-page table list toggle
+  $('tableViewBtn').addEventListener('click', () => {
+    tableMode = !tableMode;
+    document.body.classList.toggle('table-mode', tableMode);
+    setTableBatchButtons();
+    syncTableSortUI();
+    setView('list');
+    refreshList();
+  });
+
+  // Table view toolbar: search / sort / batch
+  const tableSearch = $('tableSearchInput') as HTMLInputElement;
+  let tableSearchTimer: number | undefined;
+  tableSearch.addEventListener('input', () => {
+    window.clearTimeout(tableSearchTimer);
+    tableSearchTimer = window.setTimeout(() => {
+      state.filters.search = tableSearch.value;
+      refreshList();
+    }, 200);
+  });
+  ($('tableSortField') as HTMLSelectElement).addEventListener('change', (e) => {
+    state.filters.sortField = (e.target as HTMLSelectElement).value as Filters['sortField'];
+    syncTableSortUI();
+    refreshList();
+  });
+  $('tableSortDirBtn').addEventListener('click', () => {
+    state.filters.sortDir = state.filters.sortDir === 'asc' ? 'desc' : 'asc';
+    syncTableSortUI();
+    refreshList();
+  });
+  $('tableBatchBtn').addEventListener('click', enterBatchMode);
+  $('tableSelectAllBtn').addEventListener('click', () => sidebarHandlers.onSelectAll());
+  $('tableInvertBtn').addEventListener('click', () => sidebarHandlers.onInvertSelection());
+  $('tableDeleteBtn').addEventListener('click', () => sidebarHandlers.onBatchDelete());
+  $('tableCancelBtn').addEventListener('click', exitBatchMode);
+
+  // Font size steppers (A− / A+), always available
+  $('fontDecBtn').addEventListener('click', () => adjustFont(-0.125));
+  $('fontIncBtn').addEventListener('click', () => adjustFont(0.125));
+
   // Filters collapse (list page)
   $('filterToggle').addEventListener('click', () => {
     $('searchFilters').classList.toggle('collapsed');
@@ -1003,6 +1165,19 @@ function applyFontScale(scale: string): void {
   document.documentElement.style.setProperty('--font-scale', String(clamped));
 }
 
+/** Step the reader font size by ±delta (clamped 0.75..1.5), persisted. */
+function adjustFont(delta: number): void {
+  const cur =
+    parseFloat(document.documentElement.style.getPropertyValue('--font-scale')) ||
+    parseFloat(localStorage.getItem('dscr-font-scale') || '') ||
+    1;
+  const next = Math.min(1.5, Math.max(0.75, Math.round((cur + delta) * 1000) / 1000));
+  applyFontScale(String(next));
+  localStorage.setItem('dscr-font-scale', String(next));
+  const sel = $('fontSizeSelect') as HTMLSelectElement | null;
+  if (sel && [...sel.options].some((o) => o.value === String(next))) sel.value = String(next);
+}
+
 function initLanguage(): void {
   // Not persisted (user request): derive from the browser/OS language on every load.
   const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || 'zh-CN').toLowerCase();
@@ -1020,6 +1195,8 @@ function init(): void {
   initTheme();
   updateThemeButton();
   updateSortButtons();
+  syncTableSortUI();
+  setTableBatchButtons();
   setView('list');
   updateOutlineButton();
   // Apply the print preferences up front so Ctrl+P honors them too

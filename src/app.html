@@ -147,9 +147,16 @@
             <button id="viewContentBtn" aria-label="Reading view">
                 <i class="fa-regular fa-file-lines"></i> <span data-i18n="viewContent"></span>
             </button>
+            <button id="tableViewBtn" aria-label="Full list">
+                <i class="fa-solid fa-table-list"></i> <span data-i18n="tableView"></span>
+            </button>
             <button id="toggleOutlineBtn" aria-label="Toggle Outline">
                 <i class="fa-solid fa-list-ol"></i> <span data-i18n="outline"></span>
             </button>
+            <div class="font-steps" role="group" aria-label="Font size">
+                <button id="fontDecBtn" aria-label="Smaller font">A−</button>
+                <button id="fontIncBtn" aria-label="Larger font">A+</button>
+            </div>
             <button id="settingsBtn" aria-label="Settings">
                 <i class="fa-solid fa-gear"></i> <span data-i18n="settings"></span>
             </button>
@@ -224,6 +231,50 @@
         </aside>
 
         <section class="list-info" id="listInfoPanel" hidden></section>
+
+        <!-- Full-page conversation list (table view, Explorer-like) -->
+        <section class="table-panel" id="tablePanel" hidden>
+            <div class="table-toolbar">
+                <div class="table-filters">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="tableSearchInput" data-i18n-placeholder="searchPlaceholder" aria-label="Search">
+                    </div>
+                    <select id="tableSortField" aria-label="Sort by">
+                        <option value="inserted_at" data-i18n="sortByStartDate"></option>
+                        <option value="updated_at" data-i18n="sortByLastDate"></option>
+                        <option value="title" data-i18n="sortTitle"></option>
+                    </select>
+                    <button id="tableSortDirBtn" class="sort-dir" title="Sort direction">
+                        <i class="fa-solid fa-arrow-down-wide-short"></i> <span data-i18n="descending"></span>
+                    </button>
+                </div>
+                <span class="table-stats" id="tableStats"></span>
+                <div class="table-actions">
+                    <button id="tableBatchBtn" class="batch-select" data-i18n="batchSelect"></button>
+                    <button id="tableSelectAllBtn" class="batch-select-all" hidden data-i18n="selectAll"></button>
+                    <button id="tableInvertBtn" class="batch-invert" hidden data-i18n="invertSelection"></button>
+                    <button id="tableDeleteBtn" class="batch-delete btn-danger" hidden data-i18n="deleteSelected"></button>
+                    <button id="tableCancelBtn" class="batch-cancel" hidden data-i18n="cancelBatch"></button>
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table class="conv-table">
+                    <thead>
+                        <tr>
+                            <th class="col-check"></th>
+                            <th data-i18n="colTitle"></th>
+                            <th data-i18n="colStart"></th>
+                            <th data-i18n="colEnd"></th>
+                            <th data-i18n="colTurns"></th>
+                            <th data-i18n="colChars"></th>
+                            <th class="col-actions"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </section>
 
         <div class="resize-handle" id="resizeHandle" aria-hidden="true"></div>
 

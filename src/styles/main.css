@@ -114,6 +114,11 @@ header {
 .header-main h1 { color: var(--primary-color); font-size: 1.4rem; }
 .header-main p { font-size: 0.85rem; color: var(--muted-color); }
 .header-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+/* Quick font-size steppers (A− / A+) always reachable */
+.font-steps { display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; }
+.font-steps button { width: auto; padding: 2px 9px; font-size: 0.85rem; font-weight: bold; background: var(--card-bg); color: var(--text-color); }
+.font-steps button + button { border-left: 1px solid var(--border-color); }
+.font-steps button:hover { background: var(--primary-color); color: #fff; }
 .language-selector { display: flex; align-items: center; gap: 8px; }
 .print-option {
   display: flex;
@@ -129,9 +134,10 @@ header {
 
 /* ---------- Main layout (two views: list page / reading page) ---------- */
 .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
+:root { --sidebar-open-width: min(360px, 40vw); }
 
 .sidebar {
-  width: min(360px, 40vw);
+  width: var(--sidebar-open-width);
   background: var(--card-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -139,24 +145,21 @@ header {
   overflow: hidden;
   flex-shrink: 0;
 }
-/* Slide-over panel: while reading, the list sits off-canvas and only slides in
-   (peek-list) with a transition — no instant pop. */
+/* Keep the inner list at full width so the open/close animation never reflows
+   the items (the sidebar clips it like a curtain while its width animates). */
+.sidebar .conversation-list { width: var(--sidebar-open-width); }
+
+/* While reading, the list behaves like the outline sidebar: it is a normal
+   flex child that pushes the content aside as it opens (width 0 -> full),
+   instead of an overlay floating on top of the text. */
 body.view-content .sidebar {
-  display: flex;
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  z-index: 20;
-  transform: translateX(-101%);
-  visibility: hidden;
-  pointer-events: none;
-  transition: transform 0.28s ease, visibility 0s linear 0.28s;
+  width: 0;
+  border-right: none;
+  transition: width 0.28s ease;
 }
 body.view-content.peek-list .sidebar {
-  transform: translateX(0);
-  visibility: visible;
-  pointer-events: auto;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-  transition: transform 0.28s ease, visibility 0s;
+  width: var(--sidebar-open-width);
+  border-right: 1px solid var(--border-color);
 }
 
 .list-info {
@@ -176,6 +179,58 @@ body.view-list .list-info { display: flex; }
 .list-info-meta { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--muted-color); }
 .list-info-meta b { color: var(--text-color); }
 .list-info-actions { margin-top: 16px; display: flex; gap: 8px; }
+
+/* ---------- Full-page conversation list (table view) ---------- */
+.table-panel {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--card-bg);
+}
+body.view-list.table-mode .table-panel { display: flex; }
+body.view-list.table-mode .sidebar,
+body.view-list.table-mode .list-info { display: none; }
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--conversation-list-header-bg);
+}
+.table-stats { font-size: 0.85rem; color: var(--muted-color); }
+.table-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.table-filters .search-box { display: flex; align-items: center; gap: 6px; min-width: min(340px, 40vw); }
+.table-filters .search-box input { flex: 1; min-width: 120px; }
+.table-filters select, .table-filters .sort-dir { padding: 4px 8px; font-size: 0.8rem; }
+.table-actions { display: flex; gap: 6px; }
+.table-actions button { width: auto; padding: 4px 10px; font-size: 0.8rem; }
+.table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+.conv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.conv-table th, .conv-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.conv-table th {
+  position: sticky;
+  top: 0;
+  background: var(--conversation-list-header-bg);
+  z-index: 1;
+}
+.conv-table tbody tr { cursor: pointer; }
+.conv-table tbody tr:hover { background: rgba(52, 152, 219, 0.08); }
+.conv-table tbody tr.active { background: rgba(52, 152, 219, 0.16); }
+.conv-table .col-check, .conv-table .col-actions { width: 40px; text-align: center; }
+.conv-table .col-check input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color); }
+.conv-table td.col-title { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+.conv-table .row-actions button {
+  width: auto; padding: 2px 8px; margin-left: 4px; font-size: 0.75rem;
+}
 
 .resize-handle { display: none; }
 
@@ -497,22 +552,26 @@ body.view-content .content-toolbar { display: block; }
 .fragment-divider { height: 1px; background: var(--border-color); margin: 10px 0; }
 
 /* High-contrast mode (settings): real tinted backgrounds per fragment type,
-   thicker accent border, response green vs search violet clearly separated. */
-[data-hc="on"] .fragment { border-left-width: 5px; }
-[data-hc="on"] .fragment.request { background: #e0edfa; border-left-color: #1f6fbe; }
-[data-hc="on"] .fragment.response { background: #e2f3e2; border-left-color: #2e8b33; }
-[data-hc="on"] .fragment.think { background: #fdefd8; border-left-color: #d98517; }
+   thicker accent border, response green vs search violet clearly separated.
+   Hues chosen for readability even with color-vision deficiency: request blue,
+   response teal-green, thinking amber-orange, search mauve, file sky blue,
+   tool_open brick red — labels also carry the type text, so color is never the
+   only cue. */
+[data-hc="on"] .fragment { border-left-width: 6px; }
+[data-hc="on"] .fragment.request { background: #c9def7; border-left-color: #0f5cad; }
+[data-hc="on"] .fragment.response { background: #cdeed8; border-left-color: #0e7a43; }
+[data-hc="on"] .fragment.think { background: #fde6bd; border-left-color: #b26a00; }
 [data-hc="on"] .fragment.search,
-[data-hc="on"] .fragment.tool_search { background: #ece4fa; border-left-color: #7a50c8; }
-[data-hc="on"] .fragment.file { background: #f3e8f7; border-left-color: #8e44ad; }
-[data-hc="on"] .fragment.tool_open { background: #f0f1f2; border-left-color: #7f8c8d; }
-[data-theme="dark"][data-hc="on"] .fragment.request { background: #1c3550; border-left-color: #5aa9e8; }
-[data-theme="dark"][data-hc="on"] .fragment.response { background: #1d3a24; border-left-color: #54c46b; }
-[data-theme="dark"][data-hc="on"] .fragment.think { background: #453117; border-left-color: #e3a03e; }
+[data-hc="on"] .fragment.tool_search { background: #eed9e8; border-left-color: #a346a0; }
+[data-hc="on"] .fragment.file { background: #d8eef9; border-left-color: #2e8fc0; }
+[data-hc="on"] .fragment.tool_open { background: #fadfd6; border-left-color: #b0441f; }
+[data-theme="dark"][data-hc="on"] .fragment.request { background: #1d3f63; border-left-color: #7cc0f7; }
+[data-theme="dark"][data-hc="on"] .fragment.response { background: #174a2f; border-left-color: #5fe0a0; }
+[data-theme="dark"][data-hc="on"] .fragment.think { background: #4e3a12; border-left-color: #ffbe55; }
 [data-theme="dark"][data-hc="on"] .fragment.search,
-[data-theme="dark"][data-hc="on"] .fragment.tool_search { background: #322750; border-left-color: #a78ae8; }
-[data-theme="dark"][data-hc="on"] .fragment.file { background: #3a2145; border-left-color: #c07fe0; }
-[data-theme="dark"][data-hc="on"] .fragment.tool_open { background: #2d3237; border-left-color: #98a0a6; }
+[data-theme="dark"][data-hc="on"] .fragment.tool_search { background: #43204a; border-left-color: #e39be0; }
+[data-theme="dark"][data-hc="on"] .fragment.file { background: #123c52; border-left-color: #5cc8f0; }
+[data-theme="dark"][data-hc="on"] .fragment.tool_open { background: #43241a; border-left-color: #ff8f70; }
 
 .request-text { white-space: pre-wrap; word-break: break-word; }
 
@@ -796,6 +855,9 @@ body.view-content .content-toolbar { display: block; }
   }
   /* extra clearance so the last message is fully readable when the toolbar hides */
   .conversation-detail { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); }
+  /* Table view: drop the least useful columns on narrow screens */
+  .conv-table th:nth-child(4), .conv-table td:nth-child(4),
+  .conv-table th:nth-child(6), .conv-table td:nth-child(6) { display: none; }
 }
 
 /* ---------- Legacy: keyboard focus ---------- */
