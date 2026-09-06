@@ -9,6 +9,7 @@
   --text-color: #333333;
   --muted-color: #777777;
   --border-color: #e0e0e0;
+  --font-scale: 1;
   --request-color: #e3f2fd;
   --response-color: #f1f8e9;
   --think-color: #fff3e0;
@@ -43,6 +44,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body { height: 100%; }
+/* Reader font-size scaling (settings): rem-based text scales with this root size */
+html { font-size: calc(16px * var(--font-scale)); }
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -136,15 +139,24 @@ header {
   overflow: hidden;
   flex-shrink: 0;
 }
-body.view-content .sidebar { display: none; }
-
-/* Peek the list from the reading view (left ribbon, wide screens) */
-body.view-content.peek-list .sidebar {
+/* Slide-over panel: while reading, the list sits off-canvas and only slides in
+   (peek-list) with a transition — no instant pop. */
+body.view-content .sidebar {
   display: flex;
   position: absolute;
   left: 0; top: 0; bottom: 0;
   z-index: 20;
+  transform: translateX(-101%);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.28s ease, visibility 0s linear 0.28s;
+}
+body.view-content.peek-list .sidebar {
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.28s ease, visibility 0s;
 }
 
 .list-info {
@@ -462,12 +474,30 @@ body.view-content .content-toolbar { display: block; }
 .fragment.request { border-left-color: #3498db; }
 .fragment.response { border-left-color: #2ecc71; }
 .fragment.think { border-left-color: #ffb300; }
-.fragment.search { border-left-color: #4caf50; }
-.fragment.file { border-left-color: #9b59b6; }
-.fragment.tool_search { border-left-color: #4caf50; }
+/* Search (both old SEARCH and new TOOL_SEARCH) is violet, NOT green like response */
+.fragment.search, .fragment.tool_search { border-left-color: #8e44ad; }
+.fragment.file { border-left-color: #d354a3; }
 .fragment.tool_open { border-left-color: #95a5a6; }
 .fragment-header { font-weight: bold; margin-bottom: 8px; font-size: 0.8rem; color: var(--muted-color); }
 .fragment-divider { height: 1px; background: var(--border-color); margin: 10px 0; }
+
+/* High-contrast mode (settings): real tinted backgrounds per fragment type,
+   thicker accent border, response green vs search violet clearly separated. */
+[data-hc="on"] .fragment { border-left-width: 5px; }
+[data-hc="on"] .fragment.request { background: #e0edfa; border-left-color: #1f6fbe; }
+[data-hc="on"] .fragment.response { background: #e2f3e2; border-left-color: #2e8b33; }
+[data-hc="on"] .fragment.think { background: #fdefd8; border-left-color: #d98517; }
+[data-hc="on"] .fragment.search,
+[data-hc="on"] .fragment.tool_search { background: #ece4fa; border-left-color: #7a50c8; }
+[data-hc="on"] .fragment.file { background: #f3e8f7; border-left-color: #8e44ad; }
+[data-hc="on"] .fragment.tool_open { background: #f0f1f2; border-left-color: #7f8c8d; }
+[data-theme="dark"][data-hc="on"] .fragment.request { background: #1c3550; border-left-color: #5aa9e8; }
+[data-theme="dark"][data-hc="on"] .fragment.response { background: #1d3a24; border-left-color: #54c46b; }
+[data-theme="dark"][data-hc="on"] .fragment.think { background: #453117; border-left-color: #e3a03e; }
+[data-theme="dark"][data-hc="on"] .fragment.search,
+[data-theme="dark"][data-hc="on"] .fragment.tool_search { background: #322750; border-left-color: #a78ae8; }
+[data-theme="dark"][data-hc="on"] .fragment.file { background: #3a2145; border-left-color: #c07fe0; }
+[data-theme="dark"][data-hc="on"] .fragment.tool_open { background: #2d3237; border-left-color: #98a0a6; }
 
 .request-text { white-space: pre-wrap; word-break: break-word; }
 
@@ -741,6 +771,16 @@ body.view-content .content-toolbar { display: block; }
   .conversation-detail, .outline-content, .conversations-container {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Room for gesture navigation and browser bottom bars (safe-area aware) */
+  .conversation-detail,
+  .conversations-container,
+  .outline-content,
+  .list-info {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  }
+  /* extra clearance so the last message is fully readable when the toolbar hides */
+  .conversation-detail { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); }
 }
 
 /* ---------- Legacy: keyboard focus ---------- */

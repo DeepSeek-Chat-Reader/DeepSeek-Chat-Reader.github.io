@@ -384,6 +384,9 @@ let currentView: 'list' | 'content' = 'list';
 let outlinePinned = false;
 let outlineHideTimer: number | undefined;
 
+/** Hover-capable pointer (mouse/trackpad). Touch devices never auto-reveal. */
+const canHover = typeof window.matchMedia === 'function' && window.matchMedia('(hover: hover)').matches;
+
 function setView(view: 'list' | 'content'): void {
   currentView = view;
   document.body.classList.toggle('view-list', view === 'list');
@@ -410,34 +413,55 @@ function updateOutlineButton(): void {
 
 /** Hover the left/right edge ribbons to peek list/outline (toggleable in settings). */
 function bindEdgeRibbons(): void {
-  const revealEnabled = () => localStorage.getItem('dscr-edge-reveal') !== '0';
+  const revealEnabled = () => canHover && localStorage.getItem('dscr-edge-reveal') !== '0';
 
   // Left ribbon: peek the list from the reading view (wide screens)
   const sRibbon = $('sidebarRibbon');
   const sidebar = $('sidebar');
-  sRibbon.addEventListener('mouseenter', () => {
-    if (!revealEnabled() || currentView !== 'content') return;
-    document.body.classList.add('peek-list');
-  });
+  if (canHover) {
+    sRibbon.addEventListener('mouseenter', () => {
+      if (!revealEnabled() || currentView !== 'content') return;
+      document.body.classList.add('peek-list');
+    });
+  }
   sidebar.addEventListener('mouseleave', () => {
     if (currentView !== 'content') return;
     document.body.classList.remove('peek-list');
+  });
+  // Click/tap on the ribbon toggles the peek manually — the only way to reveal
+  // the list on touch devices (hover auto-reveal is off there to avoid
+  // accidental opens).
+  sRibbon.addEventListener('click', () => {
+    if (currentView !== 'content') return;
+    document.body.classList.toggle('peek-list');
+  });
+  // Clicking anywhere outside the peeked sidebar closes it (matters on touch).
+  document.addEventListener('pointerdown', (e) => {
+    if (currentView !== 'content') return;
+    if (!sidebar.contains(e.target as Node) && e.target !== sRibbon) {
+      document.body.classList.remove('peek-list');
+    }
   });
 
   // Right ribbon -> outline
   const ribbon = $('outlineRibbon');
   const outlineSidebar = $('outlineSidebar');
-  ribbon.addEventListener('mouseenter', () => {
-    if (!revealEnabled()) return;
-    window.clearTimeout(outlineHideTimer);
-    outlineSidebar.classList.remove('collapsed');
-  });
-  outlineSidebar.addEventListener('mouseenter', () => window.clearTimeout(outlineHideTimer));
-  outlineSidebar.addEventListener('mouseleave', () => {
-    if (outlinePinned || !revealEnabled()) return;
-    outlineHideTimer = window.setTimeout(() => {
-      if (!outlinePinned) outlineSidebar.classList.add('collapsed');
-    }, 250);
+  if (canHover) {
+    ribbon.addEventListener('mouseenter', () => {
+      if (!revealEnabled()) return;
+      window.clearTimeout(outlineHideTimer);
+      outlineSidebar.classList.remove('collapsed');
+    });
+    outlineSidebar.addEventListener('mouseenter', () => window.clearTimeout(outlineHideTimer));
+    outlineSidebar.addEventListener('mouseleave', () => {
+      if (outlinePinned || !revealEnabled()) return;
+      outlineHideTimer = window.setTimeout(() => {
+        if (!outlinePinned) outlineSidebar.classList.add('collapsed');
+      }, 250);
+    });
+  }
+  ribbon.addEventListener('click', () => {
+    outlineSidebar.classList.toggle('collapsed');
   });
 }
 
@@ -630,7 +654,14 @@ function bindEvents(): void {
 
   // Settings
   $('settingsBtn').addEventListener('click', () => {
-    ($('edgeRevealCheck') as HTMLInputElement).checked = localStorage.getItem('dscr-edge-reveal') !== '0';
+    const edgeCheck = $('edgeRevealCheck') as HTMLInputElement;
+    // Touch devices: hover-reveal is unavailable -> checkbox off & disabled.
+    edgeCheck.checked = canHover && localStorage.getItem('dscr-edge-reveal') !== '0';
+    edgeCheck.disabled = !canHover;
+    ($('hcCheck') as HTMLInputElement).checked = document.documentElement.hasAttribute('data-hc');
+    const fontSel = $('fontSizeSelect') as HTMLSelectElement;
+    const savedScale = localStorage.getItem('dscr-font-scale') || '1';
+    fontSel.value = savedScale;
     $('settingsModal').classList.add('active');
     $('settingsModalOverlay').classList.add('active');
   });
@@ -644,6 +675,16 @@ function bindEvents(): void {
   });
   $('edgeRevealCheck').addEventListener('change', (e) => {
     localStorage.setItem('dscr-edge-reveal', (e.target as HTMLInputElement).checked ? '1' : '0');
+  });
+  $('hcCheck').addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    applyHighContrast(on);
+    localStorage.setItem('dscr-hc', on ? '1' : '0');
+  });
+  $('fontSizeSelect').addEventListener('change', (e) => {
+    const scale = (e.target as HTMLSelectElement).value;
+    applyFontScale(scale);
+    localStorage.setItem('dscr-font-scale', scale);
   });
 
   // Language (button + modal)
@@ -805,6 +846,19 @@ function markLanguageSelection(lang: string): void {
   if (en) en.classList.toggle('selected', lang === 'en');
 }
 
+/** High-contrast fragment coloring (data-hc on <html>). */
+function applyHighContrast(on: boolean): void {
+  if (on) document.documentElement.setAttribute('data-hc', 'on');
+  else document.documentElement.removeAttribute('data-hc');
+}
+
+/** Reader font-size scale — rem-based text follows --font-scale on <html>. */
+function applyFontScale(scale: string): void {
+  const n = Number(scale);
+  const clamped = Number.isFinite(n) ? Math.min(1.5, Math.max(0.75, n)) : 1;
+  document.documentElement.style.setProperty('--font-scale', String(clamped));
+}
+
 function initLanguage(): void {
   // Not persisted (user request): derive from the browser/OS language on every load.
   const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || 'zh-CN').toLowerCase();
@@ -814,6 +868,9 @@ function initLanguage(): void {
 }
 
 function init(): void {
+  // Reader view settings before first paint (high-contrast, font scale).
+  applyHighContrast(localStorage.getItem('dscr-hc') === '1');
+  applyFontScale(localStorage.getItem('dscr-font-scale') || '1');
   initLanguage();
   applyTranslations();
   initTheme();

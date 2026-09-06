@@ -108,7 +108,14 @@ const zhCN: Dict = {
 
   settings: '设置',
   edgeReveal: '鼠标贴边自动弹出侧栏/大纲',
-  edgeRevealHint: '关闭后，侧栏和大纲只能通过按钮手动开关。',
+  edgeRevealHint: '关闭后，侧栏和大纲只能通过按钮手动开关。触屏设备默认关闭。',
+  fontSize: '正文字号',
+  fontSmall: '小',
+  fontNormal: '默认',
+  fontLarge: '大',
+  fontXLarge: '特大',
+  highContrast: '高对比模式：片段用底色区分类型',
+  highContrastHint: '提问=蓝、回答=绿、思考=琥珀、搜索=紫、附件=洋红，边框加粗。',
 
   language: '语言',
   languageShort: '文A',
@@ -228,7 +235,14 @@ const en: Dict = {
 
   settings: 'Settings',
   edgeReveal: 'Reveal sidebar & outline on edge hover',
-  edgeRevealHint: 'When off, sidebar and outline only open via their buttons.',
+  edgeRevealHint: 'When off, sidebar and outline only open via their buttons. Off by default on touch devices.',
+  fontSize: 'Reader font size',
+  fontSmall: 'Small',
+  fontNormal: 'Normal',
+  fontLarge: 'Large',
+  fontXLarge: 'X-Large',
+  highContrast: 'High-contrast fragment colors',
+  highContrastHint: 'Question=blue, answer=green, thinking=amber, search=violet, file=magenta, with a thicker accent edge.',
 
   language: 'Language',
   languageShort: '文A',
