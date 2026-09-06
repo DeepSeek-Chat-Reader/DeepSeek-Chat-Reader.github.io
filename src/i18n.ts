@@ -135,6 +135,7 @@ const zhCN: Dict = {
   hitsPosition: '第 {pos} 处 / 共 {count} 处',
   colHits: '命中',
   searchMoreHits: '…另有 {more} 处',
+  searchJump: '点击定位到正文',
 
   outline: '大纲',
   collapseOutline: '收起',
@@ -274,6 +275,7 @@ const en: Dict = {
   hitsPosition: 'Match {pos} / {count}',
   colHits: 'Hits',
   searchMoreHits: '…{more} more',
+  searchJump: 'Jump to this position',
 
   outline: 'Outline',
   collapseOutline: 'Collapse',

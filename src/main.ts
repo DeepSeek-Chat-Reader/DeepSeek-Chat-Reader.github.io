@@ -293,109 +293,44 @@ function syncTableFiltersUI(): void {
   refreshSortIndicators();
 }
 
-let colResizeActive = false;
-
-/** Drag the right edge of a table header to resize that column.
- *  A real drag needs >= 4px movement — otherwise the gesture is a plain
- *  header click (sort). Widths are applied as percentages of the table so the
- *  layout doesn't jump while dragging, and the click that follows a real drag
- *  is suppressed. */
-function bindTableColumnResize(): void {
-  const thead = $('tablePanel').querySelector('thead')!;
-  const table = $('tablePanel').querySelector<HTMLTableElement>('.conv-table')!;
-  let drag:
-    | {
-        th: HTMLTableCellElement;
-        startX: number;
-        startW: number;
-        tableW: number;
-        moved: boolean;
-      }
-    | null = null;
-  thead.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    const th = (e.target as HTMLElement).closest('th') as HTMLTableCellElement | null;
-    if (!th || th.classList.contains('col-check') || th.classList.contains('col-actions')) return;
-    const rect = th.getBoundingClientRect();
-    if (rect.right - e.clientX > 6) return; // only within the right-edge grip
-    e.preventDefault();
-    const tableRect = table.getBoundingClientRect();
-    drag = {
-      th,
-      startX: e.clientX,
-      startW: parseFloat(getComputedStyle(th).width) || 0,
-      tableW: tableRect.width || 1,
-      moved: false,
-    };
-  });
-  window.addEventListener('pointermove', (e) => {
-    if (!drag) return;
-    const dx = e.clientX - drag.startX;
-    if (!drag.moved && Math.abs(dx) < 4) return; // not a drag yet — allow sort click
-    if (!drag.moved) {
-      drag.moved = true;
-      colResizeActive = true;
-      document.body.classList.add('col-resizing');
-      table.classList.add('resizing-col');
-    }
-    const px = Math.min(900, Math.max(48, drag.startW + dx));
-    const pct = Math.min(90, Math.max(5, (px / drag.tableW) * 100));
-    drag.th.style.width = `${pct.toFixed(2)}%`;
-  });
-  window.addEventListener('pointerup', () => {
-    if (drag?.moved) {
-      // swallow the click event that follows the drag (would sort the column)
-      window.setTimeout(() => {
-        colResizeActive = false;
-        document.body.classList.remove('col-resizing');
-        table.classList.remove('resizing-col');
-      }, 0);
-    } else {
-      colResizeActive = false;
-      document.body.classList.remove('col-resizing');
-      table.classList.remove('resizing-col');
-    }
-    drag = null;
-  });
-  window.addEventListener('pointercancel', () => {
-    drag = null;
-    colResizeActive = false;
-    document.body.classList.remove('col-resizing');
-    table.classList.remove('resizing-col');
-  });
-}
-
 /** Per-conversation hit info for the table search (matches sidebar filter). */
-function conversationHitInfo(c: Conversation, term: string): { count: number; contexts: string[] } {
+interface ConvHitSample {
+  nodeId: string;
+  ord: number; // occurrence ordinal (1-based) within that node
+  ctx: string; // context string around the hit (kept to the fixed window)
+}
+function conversationHitInfo(c: Conversation, term: string): { count: number; samples: ConvHitSample[] } {
   const q = term.toLowerCase();
   let count = 0;
-  const contexts: string[] = [];
-  const scan = (content: string) => {
+  const samples: ConvHitSample[] = [];
+  const scan = (content: string, nodeId: string, state: { n: number }) => {
     const lower = content.toLowerCase();
     let i = lower.indexOf(q);
     const win = 30;
     while (i !== -1) {
       count++;
-      if (contexts.length < 8) {
+      state.n++;
+      if (samples.length < 10) {
         const start = Math.max(0, i - win);
         const end = Math.min(content.length, i + q.length + win);
         let pre = content.slice(start, i);
         let post = content.slice(i + q.length, end);
         if (start > 0) pre = '…' + pre.slice(Math.max(0, pre.length - (win - 1)));
         if (end < content.length) post = post.slice(0, Math.max(0, win - 1)) + '…';
-        contexts.push(pre + content.slice(i, i + q.length) + post);
+        samples.push({ nodeId, ord: state.n, ctx: pre + content.slice(i, i + q.length) + post });
       }
       i = lower.indexOf(q, i + Math.max(1, q.length));
     }
   };
   for (const n of c.nodes.values()) {
     if (!n.message) continue;
+    const st = { n: 0 };
     for (const f of n.message.fragments) {
-      if (f.kind === 'text') scan(f.content);
-      else if (f.kind === 'search') for (const r of f.results) scan(r.title);
+      if (f.kind === 'text') scan(f.content, n.id, st);
+      else if (f.kind === 'search') for (const r of f.results) scan(r.title, n.id, st);
     }
   }
-  return { count, contexts };
+  return { count, samples };
 }
 
 /** Rebuild the full-page table rows (Explorer-like columns). */
@@ -477,32 +412,38 @@ function renderTableList(list: Conversation[]): void {
     });
     tbody.appendChild(tr);
 
-    // Snippet row(s) under this conversation while searching
-    if (hits && hits.contexts.length > 0) {
+    // Snippet row under this conversation while searching: chips packed inline
+    // until the row hits the page edge; each chip jumps to its occurrence.
+    if (hits && hits.samples.length > 0) {
       const sub = document.createElement('tr');
       sub.className = 'hit-snippet-row';
       const subTd = document.createElement('td');
       subTd.colSpan = 8;
       const box = document.createElement('div');
       box.className = 'hit-snippets';
-      for (const ctx of hits.contexts) {
-        const line = document.createElement('div');
-        line.className = 'hit-snippet';
-        const at = ctx.indexOf(term);
+      for (const s of hits.samples) {
+        const chip = document.createElement('span');
+        chip.className = 'hit-snippet';
+        chip.title = t('searchJump');
+        const at = s.ctx.indexOf(term);
         if (at >= 0) {
-          line.append(document.createTextNode(ctx.slice(0, at)));
+          chip.append(document.createTextNode(s.ctx.slice(0, at)));
           const m = document.createElement('mark');
-          m.textContent = ctx.slice(at, at + term.length);
-          line.append(m, document.createTextNode(ctx.slice(at + term.length)));
+          m.textContent = s.ctx.slice(at, at + term.length);
+          chip.append(m, document.createTextNode(s.ctx.slice(at + term.length)));
         } else {
-          line.textContent = ctx;
+          chip.textContent = s.ctx;
         }
-        box.appendChild(line);
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          jumpToHitInConversation(c, term, s.nodeId, s.ord);
+        });
+        box.appendChild(chip);
       }
-      if (hits.count > hits.contexts.length) {
-        const more = document.createElement('div');
+      if (hits.count > hits.samples.length) {
+        const more = document.createElement('span');
         more.className = 'hit-snippet-more';
-        more.textContent = t('searchMoreHits', { more: hits.count - hits.contexts.length });
+        more.textContent = t('searchMoreHits', { more: hits.count - hits.samples.length });
         box.appendChild(more);
       }
       subTd.appendChild(box);
@@ -510,6 +451,27 @@ function renderTableList(list: Conversation[]): void {
       tbody.appendChild(sub);
     }
   }
+}
+
+/** Open a conversation and scroll to the exact text occurrence of a hit. */
+function jumpToHitInConversation(c: Conversation, term: string, nodeId: string, ord: number): void {
+  openConversation(c);
+  state.branchPath = pathToNode(c, nodeId);
+  renderCurrent();
+  runContentSearch(term); // session + highlight on the (now target) chain
+  const el = nodeElement(nodeId);
+  let target: HTMLElement | null = null;
+  if (el) {
+    const marks = [...el.querySelectorAll('mark.highlight')];
+    target = marks.length ? marks[Math.min(ord - 1, marks.length - 1)] : el;
+  }
+  if (!target) return;
+  for (let p: HTMLElement | null = target; p; p = p.parentElement) {
+    if (p.tagName === 'DETAILS') (p as HTMLDetailsElement).open = true;
+  }
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.querySelectorAll('mark.search-current').forEach((m) => m.classList.remove('search-current'));
+  target.classList.add('search-current');
 }
 
 // ---------------------------------------------------------------------------
@@ -654,7 +616,6 @@ function setView(view: 'list' | 'content'): void {
   if (view === 'list') {
     sidebarPinned = false;
     document.body.classList.remove('pin-list');
-    updateSidebarButton();
   }
   updateViewButtons();
   if (view === 'content') clearContentSearch();
@@ -667,12 +628,6 @@ function updateViewButtons(): void {
   const span = btn.querySelector('span');
   if (icon) icon.className = currentView === 'content' ? 'fa-solid fa-table-list' : 'fa-regular fa-file-lines';
   if (span) span.textContent = currentView === 'content' ? t('tableView') : t('viewContent');
-}
-
-/** Pin/unpin the conversation sidebar while reading (independent of hover). */
-function updateSidebarButton(): void {
-  const btn = $('sidebarToggleBtn');
-  btn.classList.toggle('active', sidebarPinned);
 }
 
 function toggleOutline(): void {
@@ -1009,7 +964,6 @@ function bindEvents(): void {
   $('sidebarToggleBtn').addEventListener('click', () => {
     sidebarPinned = !sidebarPinned;
     document.body.classList.toggle('pin-list', sidebarPinned);
-    updateSidebarButton();
   });
 
   // Table view toolbar: search / sort / batch
@@ -1036,7 +990,7 @@ function bindEvents(): void {
   // Table: click column headers to sort (click again to reverse)
   $('tablePanel').querySelector('thead')!.addEventListener('click', (e) => {
     const th = (e.target as HTMLElement).closest('th[data-sort]') as HTMLTableCellElement | null;
-    if (!th || colResizeActive) return;
+    if (!th) return;
     const field = th.dataset.sort as Filters['sortField'];
     if (field === state.filters.sortField) {
       state.filters.sortDir = state.filters.sortDir === 'asc' ? 'desc' : 'asc';
@@ -1060,8 +1014,6 @@ function bindEvents(): void {
     refreshList();
   });
 
-  // Table: drag column header edges to resize column widths
-  bindTableColumnResize();
   $('tableBatchBtn').addEventListener('click', enterBatchMode);
   $('tableSelectAllBtn').addEventListener('click', () => sidebarHandlers.onSelectAll());
   $('tableInvertBtn').addEventListener('click', () => sidebarHandlers.onInvertSelection());

@@ -120,7 +120,6 @@ header {
 .font-steps button { width: auto; padding: 4px 14px; font-size: 1.05rem; font-weight: bold; background: var(--card-bg); color: var(--text-color); }
 .font-steps button + button { border-left: 1px solid var(--border-color); }
 .font-steps button:hover { background: var(--primary-color); color: #fff; }
-#sidebarToggleBtn.active { background: rgba(52, 152, 219, 0.18); color: var(--primary-color); }
 /* Elements shown only on wide / only on narrow screens */
 .hide-wide { display: none !important; }
 .language-selector { display: flex; align-items: center; gap: 8px; }
@@ -234,7 +233,6 @@ body.view-list .sidebar { display: none; }
 .conv-table tbody tr.active { background: rgba(52, 152, 219, 0.16); }
 .conv-table .col-check, .conv-table .col-actions { text-align: center; }
 .conv-table .col-check { width: 44px; }
-.conv-table th:nth-child(2) { width: 34%; }
 .conv-table th:nth-child(3), .conv-table th:nth-child(4) { width: 132px; }
 .conv-table th:nth-child(5) { width: 84px; }
 .conv-table th:nth-child(6) { width: 112px; }
@@ -251,34 +249,33 @@ body.view-list .sidebar { display: none; }
 .conv-table tr.hit-snippet-row { display: none; }
 .conv-table.searching tr.hit-snippet-row { display: table-row; }
 .conv-table tr.hit-snippet-row > td { white-space: normal; padding: 2px 10px 6px 54px; }
-.hit-snippets { display: flex; flex-direction: column; gap: 2px; }
+
+/* Sortable column headers with ↑/↓ indicator (title column takes leftover room) */
+.conv-table th[data-sort] { cursor: pointer; user-select: none; }
+.conv-table th[data-sort] .sort-arrow { margin-left: 6px; font-size: 0.7rem; color: var(--primary-color); }
+.conv-table th { border-right: 1px solid var(--border-color); }
+.conv-table td { border-right: 1px solid var(--border-color); }
+.conv-table th:last-child, .conv-table td:last-child { border-right: none; }
+
+/* Search hit chips under a conversation row: pack as many as fit, jump on click */
+.hit-snippets { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: center; }
 .hit-snippet {
+  display: inline-block;
+  max-width: 60%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.8rem;
-  color: var(--muted-color);
+  color: var(--link-color);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--link-color) 45%, transparent);
+  text-underline-offset: 2px;
+  padding: 1px 0;
 }
-.hit-snippet mark { background: transparent; color: var(--text-color); font-weight: bold; }
-.hit-snippet-more { font-size: 0.75rem; color: var(--muted-color); }
-
-/* Sortable column headers with ↑/↓ indicator and a draggable resize grip */
-.conv-table th[data-sort] { cursor: pointer; user-select: none; }
-.conv-table th[data-sort] .sort-arrow { margin-left: 6px; font-size: 0.7rem; color: var(--primary-color); }
-.conv-table th { position: relative; border-right: 2px solid var(--border-color); }
-.conv-table td { border-right: 1px solid var(--border-color); }
-.conv-table th:last-child, .conv-table td:last-child { border-right: none; }
-.conv-table th:not(.col-check):not(.col-actions)::after {
-  content: '';
-  position: absolute;
-  right: -2px; top: 0; bottom: 0;
-  width: 6px;
-  cursor: col-resize;
-  z-index: 2;
-}
-.conv-table.resizing-col { cursor: col-resize; }
-.conv-table.resizing-col th, .conv-table.resizing-col td { user-select: none; }
-body.col-resizing { cursor: col-resize; user-select: none; }
+.hit-snippet:hover { text-decoration-thickness: 2px; }
+.hit-snippet mark { background: transparent; color: inherit; font-weight: bold; }
+.hit-snippet-more { font-size: 0.75rem; color: var(--muted-color); cursor: default; }
 
 .resize-handle { display: none; }
 
