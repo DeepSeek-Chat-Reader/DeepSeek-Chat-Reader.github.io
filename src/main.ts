@@ -295,28 +295,69 @@ function syncTableFiltersUI(): void {
 
 let colResizeActive = false;
 
-/** Drag the right edge of a table header to resize that column. */
+/** Drag the right edge of a table header to resize that column.
+ *  A real drag needs >= 4px movement — otherwise the gesture is a plain
+ *  header click (sort). Widths are applied as percentages of the table so the
+ *  layout doesn't jump while dragging, and the click that follows a real drag
+ *  is suppressed. */
 function bindTableColumnResize(): void {
   const thead = $('tablePanel').querySelector('thead')!;
   const table = $('tablePanel').querySelector<HTMLTableElement>('.conv-table')!;
-  let drag: { th: HTMLTableCellElement; startX: number; startW: number } | null = null;
+  let drag:
+    | {
+        th: HTMLTableCellElement;
+        startX: number;
+        startW: number;
+        tableW: number;
+        moved: boolean;
+      }
+    | null = null;
   thead.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
     const th = (e.target as HTMLElement).closest('th') as HTMLTableCellElement | null;
     if (!th || th.classList.contains('col-check') || th.classList.contains('col-actions')) return;
     const rect = th.getBoundingClientRect();
-    if (rect.right - e.clientX > 8) return; // only near the right edge
+    if (rect.right - e.clientX > 6) return; // only within the right-edge grip
     e.preventDefault();
-    drag = { th, startX: e.clientX, startW: parseFloat(getComputedStyle(th).width) || 0 };
-    colResizeActive = true;
-    document.body.classList.add('col-resizing');
-    table.classList.add('resizing-col');
+    const tableRect = table.getBoundingClientRect();
+    drag = {
+      th,
+      startX: e.clientX,
+      startW: parseFloat(getComputedStyle(th).width) || 0,
+      tableW: tableRect.width || 1,
+      moved: false,
+    };
   });
   window.addEventListener('pointermove', (e) => {
     if (!drag) return;
-    const next = Math.min(900, Math.max(48, drag.startW + (e.clientX - drag.startX)));
-    drag.th.style.width = `${next}px`;
+    const dx = e.clientX - drag.startX;
+    if (!drag.moved && Math.abs(dx) < 4) return; // not a drag yet — allow sort click
+    if (!drag.moved) {
+      drag.moved = true;
+      colResizeActive = true;
+      document.body.classList.add('col-resizing');
+      table.classList.add('resizing-col');
+    }
+    const px = Math.min(900, Math.max(48, drag.startW + dx));
+    const pct = Math.min(90, Math.max(5, (px / drag.tableW) * 100));
+    drag.th.style.width = `${pct.toFixed(2)}%`;
   });
   window.addEventListener('pointerup', () => {
+    if (drag?.moved) {
+      // swallow the click event that follows the drag (would sort the column)
+      window.setTimeout(() => {
+        colResizeActive = false;
+        document.body.classList.remove('col-resizing');
+        table.classList.remove('resizing-col');
+      }, 0);
+    } else {
+      colResizeActive = false;
+      document.body.classList.remove('col-resizing');
+      table.classList.remove('resizing-col');
+    }
+    drag = null;
+  });
+  window.addEventListener('pointercancel', () => {
     drag = null;
     colResizeActive = false;
     document.body.classList.remove('col-resizing');
@@ -553,7 +594,6 @@ function setBatchButtons(): void {
 
 function enterBatchMode(): void {
   state.batchMode = true;
-  $('batchActions').hidden = false;
   setBatchButtons();
   setTableBatchButtons();
   refreshList();
@@ -564,7 +604,6 @@ function exitBatchMode(): void {
   state.selected = new Set();
   setBatchButtons();
   setTableBatchButtons();
-  $('batchActions').hidden = true;
   refreshList();
 }
 
@@ -596,6 +635,8 @@ function closeSaveModal(): void {
 let currentView: 'list' | 'content' = 'list';
 let outlinePinned = false;
 let outlineHideTimer: number | undefined;
+/** Pin the conversation sidebar open while reading (正文视图). */
+let sidebarPinned = false;
 
 /** Wide screens show the list page as the full table; phones use compact cards. */
 function listIsTable(): boolean {
@@ -610,6 +651,11 @@ function setView(view: 'list' | 'content'): void {
   document.body.classList.toggle('view-list', view === 'list');
   document.body.classList.toggle('view-content', view === 'content');
   document.body.classList.remove('peek-list');
+  if (view === 'list') {
+    sidebarPinned = false;
+    document.body.classList.remove('pin-list');
+    updateSidebarButton();
+  }
   updateViewButtons();
   if (view === 'content') clearContentSearch();
 }
@@ -621,6 +667,12 @@ function updateViewButtons(): void {
   const span = btn.querySelector('span');
   if (icon) icon.className = currentView === 'content' ? 'fa-solid fa-table-list' : 'fa-regular fa-file-lines';
   if (span) span.textContent = currentView === 'content' ? t('tableView') : t('viewContent');
+}
+
+/** Pin/unpin the conversation sidebar while reading (independent of hover). */
+function updateSidebarButton(): void {
+  const btn = $('sidebarToggleBtn');
+  btn.classList.toggle('active', sidebarPinned);
 }
 
 function toggleOutline(): void {
@@ -647,7 +699,7 @@ function bindEdgeRibbons(): void {
     });
   }
   sidebar.addEventListener('mouseleave', () => {
-    if (currentView !== 'content') return;
+    if (currentView !== 'content' || sidebarPinned) return;
     document.body.classList.remove('peek-list');
   });
   // Click/tap on the ribbon toggles the peek manually — the only way to reveal
@@ -657,9 +709,10 @@ function bindEdgeRibbons(): void {
     if (currentView !== 'content') return;
     document.body.classList.toggle('peek-list');
   });
-  // Clicking anywhere outside the peeked sidebar closes it (matters on touch).
+  // Clicking anywhere outside the peeked sidebar closes it (matters on touch) —
+  // but never while it is pinned open.
   document.addEventListener('pointerdown', (e) => {
-    if (currentView !== 'content') return;
+    if (currentView !== 'content' || sidebarPinned) return;
     if (!sidebar.contains(e.target as Node) && e.target !== sRibbon) {
       document.body.classList.remove('peek-list');
     }
@@ -951,6 +1004,12 @@ function bindEvents(): void {
   $('contentBackBtn').addEventListener('click', () => {
     setView('list');
     refreshList();
+  });
+  // Pin the conversation sidebar open while reading (independent of hover)
+  $('sidebarToggleBtn').addEventListener('click', () => {
+    sidebarPinned = !sidebarPinned;
+    document.body.classList.toggle('pin-list', sidebarPinned);
+    updateSidebarButton();
   });
 
   // Table view toolbar: search / sort / batch
@@ -1470,6 +1529,7 @@ function init(): void {
   const startDate = new Date('2023-11-29');
   ($('filterStartDate') as HTMLInputElement).valueAsDate = startDate;
   ($('filterEndDate') as HTMLInputElement).valueAsDate = new Date();
+  syncTableFiltersUI(); // keep the table toolbar dates identical to the sidebar
 
   // Restore from localStorage, else embedded snapshot, else show upload modal
   const saved = loadFromStorage();

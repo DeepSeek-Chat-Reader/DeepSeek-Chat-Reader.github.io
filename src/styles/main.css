@@ -120,6 +120,7 @@ header {
 .font-steps button { width: auto; padding: 4px 14px; font-size: 1.05rem; font-weight: bold; background: var(--card-bg); color: var(--text-color); }
 .font-steps button + button { border-left: 1px solid var(--border-color); }
 .font-steps button:hover { background: var(--primary-color); color: #fff; }
+#sidebarToggleBtn.active { background: rgba(52, 152, 219, 0.18); color: var(--primary-color); }
 /* Elements shown only on wide / only on narrow screens */
 .hide-wide { display: none !important; }
 .language-selector { display: flex; align-items: center; gap: 8px; }
@@ -162,7 +163,8 @@ body.view-content .sidebar {
   border-right: none;
   transition: width 0.28s ease;
 }
-body.view-content.peek-list .sidebar {
+body.view-content.peek-list .sidebar,
+body.view-content.pin-list .sidebar {
   width: var(--sidebar-open-width);
   border-right: 1px solid var(--border-color);
 }
@@ -263,7 +265,9 @@ body.view-list .sidebar { display: none; }
 /* Sortable column headers with ↑/↓ indicator and a draggable resize grip */
 .conv-table th[data-sort] { cursor: pointer; user-select: none; }
 .conv-table th[data-sort] .sort-arrow { margin-left: 6px; font-size: 0.7rem; color: var(--primary-color); }
-.conv-table th { position: relative; border-right: 1px solid rgba(128, 128, 128, 0.18); }
+.conv-table th { position: relative; border-right: 2px solid var(--border-color); }
+.conv-table td { border-right: 1px solid var(--border-color); }
+.conv-table th:last-child, .conv-table td:last-child { border-right: none; }
 .conv-table th:not(.col-check):not(.col-actions)::after {
   content: '';
   position: absolute;
@@ -341,6 +345,29 @@ body.view-content .content-area.collapsed { display: flex; }
   margin-top: 6px; padding-top: 6px; font-size: 0.8rem; color: var(--text-color);
   border-top: 1px dashed var(--border-color); max-height: 100px; overflow: hidden; word-break: break-word;
 }
+
+/* High-contrast: maximum element/background separation — near pure black &
+   white text/fills per theme, heavy accent edges, thicker type. */
+[data-hc="on"] { --background-color: #ffffff; --card-bg: #ffffff; --text-color: #000000; --muted-color: #202020; --border-color: #777777; }
+[data-theme="dark"][data-hc="on"] { --background-color: #000000; --card-bg: #000000; --text-color: #ffffff; --muted-color: #cfcfcf; --border-color: #5f5f5f; }
+[data-hc="on"] .fragment { background: var(--card-bg); border-left-width: 7px; border: 1px solid var(--border-color); border-left-style: solid; }
+[data-hc="on"] .fragment.request { border-left-color: #0b5ecf; }
+[data-hc="on"] .fragment.response { border-left-color: #0a7d3f; }
+[data-hc="on"] .fragment.think { border-left-color: #a95f00; }
+[data-hc="on"] .fragment.search,
+[data-hc="on"] .fragment.tool_search { border-left-color: #8e3fa3; }
+[data-hc="on"] .fragment.file { border-left-color: #1779a6; }
+[data-hc="on"] .fragment.tool_open { border-left-color: #a33a1c; }
+[data-theme="dark"][data-hc="on"] .fragment.request { border-left-color: #6cb7ff; }
+[data-theme="dark"][data-hc="on"] .fragment.response { border-left-color: #6fe3a5; }
+[data-theme="dark"][data-hc="on"] .fragment.think { border-left-color: #ffc261; }
+[data-theme="dark"][data-hc="on"] .fragment.search,
+[data-theme="dark"][data-hc="on"] .fragment.tool_search { border-left-color: #e39be0; }
+[data-theme="dark"][data-hc="on"] .fragment.file { border-left-color: #5cc8f0; }
+[data-theme="dark"][data-hc="on"] .fragment.tool_open { border-left-color: #ff8f70; }
+[data-hc="on"] .fragment-header { font-weight: 800; font-size: 0.85rem; }
+[data-hc="on"] .fragment-body { font-weight: 500; }
+[data-hc="on"] .code-block, [data-hc="on"] .message-content pre { border: 1px solid var(--border-color); }
 mark.highlight { background: #ffe082; color: #222; border-radius: 2px; padding: 0 1px; }
 mark.highlight.search-current { background: #ffb74d; outline: 2px solid var(--primary-color); }
 [data-theme="dark"] mark.highlight { background: #a18000; color: #fff; }
@@ -523,7 +550,8 @@ body.view-content .content-toolbar { display: block; }
 /* hidden attribute must win inside the batch bar (its buttons are display:flex) */
 .batch-actions[hidden] { display: none !important; }
 .batch-actions button[hidden] { display: none !important; }
-.batch-actions button { width: auto; padding: 6px 10px; font-size: 0.8rem; }
+.batch-actions button, .table-actions button { width: auto; padding: 6px 10px; font-size: 0.8rem; }
+.batch-select { background: var(--secondary-color); color: #fff; border: 1px solid var(--secondary-color); }
 
 .conversation-item {
   padding: 12px 15px;
@@ -937,7 +965,8 @@ body.view-content .content-toolbar { display: block; }
     pointer-events: none;
     transition: transform 0.28s ease, visibility 0s linear 0.28s;
   }
-  body.view-content.peek-list .sidebar {
+  body.view-content.peek-list .sidebar,
+  body.view-content.pin-list .sidebar {
     transform: translateX(0);
     visibility: visible;
     pointer-events: auto;
