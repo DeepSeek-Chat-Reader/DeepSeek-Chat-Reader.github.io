@@ -600,6 +600,8 @@ body.view-content .content-toolbar { display: block; }
   width: auto;
 }
 .code-btn:hover { background: rgb(93, 173, 226); color: #fff; }
+/* Dark theme: give code blocks a visible outline against the page background */
+[data-theme="dark"] .code-block { border: 1px solid #555; }
 .code-block pre { margin: 0; padding: 12px; overflow-x: auto; background: #2d2d2d; color: #f8f8f2; }
 .code-block pre code { background: transparent; padding: 0; font-size: 0.85rem; }
 
@@ -684,6 +686,11 @@ body.view-content .content-toolbar { display: block; }
 .file-upload:hover, .file-upload.dragover { border-color: var(--primary-color); background-color: rgba(52, 152, 219, 0.05); }
 .json-input { width: 100%; height: 120px; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; font-family: monospace; resize: vertical; margin-bottom: 10px; }
 .upload-section button { width: 100%; margin-bottom: 8px; }
+
+/* Language choice buttons (language modal) */
+#languageModal .upload-section { display: flex; gap: 8px; }
+#languageModal .upload-section button.lang-btn { flex: 1; width: auto; margin-bottom: 0; padding: 8px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+#languageModal .upload-section button.lang-btn.selected { background: var(--secondary-color); color: #fff; border-color: var(--secondary-color); }
 
 /* ---------- Loading ---------- */
 .loading {

@@ -1,7 +1,9 @@
 /**
  * Regression tests against the real export files:
- *  - conversations.json        (new 2026-08 export, 12 conversations)
- *  - ExampleConversations.json (old 2025-09 sample)
+ *  - conversations.json        (new 2026-08 export, 12 conversations) — PRIVATE fixture,
+ *                              gitignored. If absent, the new-format suites are skipped
+ *                              so `npm test` still passes on a fresh clone.
+ *  - ExampleConversations.json (old 2025-09 sample, committed)
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -12,11 +14,24 @@ import { collectCitations, maskCitations, restoreCitations } from '../src/citati
 import { renderMarkdown } from '../src/render/markdown';
 import { serializeConversations } from '../src/storage';
 
-const NEW = readFileSync(resolve(__dirname, '../conversations.json'), 'utf-8');
-const OLD = readFileSync(resolve(__dirname, '../ExampleConversations.json'), 'utf-8');
+/** Load a JSON fixture; return null when the file is missing (private data). */
+function loadOptional(name: string): unknown {
+  try {
+    return JSON.parse(readFileSync(resolve(__dirname, name), 'utf-8'));
+  } catch {
+    return null;
+  }
+}
 
-describe('parser: new export (conversations.json)', () => {
-  const convs = normalizeExport(JSON.parse(NEW));
+const NEW = loadOptional('../conversations.json');
+const OLD = loadOptional('../ExampleConversations.json');
+
+// Normalize up front (guarded) so skipped suites never run on null.
+const newConvs = NEW ? normalizeExport(NEW) : null;
+const oldConvs = OLD ? normalizeExport(OLD) : null;
+
+describe.skipIf(!newConvs)('parser: new export (conversations.json)', () => {
+  const convs = newConvs ?? [];
 
   it('parses all 12 conversations', () => {
     expect(convs).toHaveLength(12);
@@ -70,8 +85,8 @@ describe('parser: new export (conversations.json)', () => {
   });
 });
 
-describe('parser: old export (ExampleConversations.json)', () => {
-  const convs = normalizeExport(JSON.parse(OLD));
+describe.skipIf(!oldConvs)('parser: old export (ExampleConversations.json)', () => {
+  const convs = oldConvs ?? [];
 
   it('still parses (backward compatibility)', () => {
     expect(convs.length).toBeGreaterThan(0);
@@ -87,8 +102,8 @@ describe('parser: old export (ExampleConversations.json)', () => {
   });
 });
 
-describe('citations (verified indexing rules)', () => {
-  const convs = normalizeExport(JSON.parse(NEW));
+describe.skipIf(!newConvs)('citations (verified indexing rules)', () => {
+  const convs = newConvs ?? [];
 
   it('[reference:N] resolves 0-based into merged TOOL_SEARCH results', () => {
     const testConv = convs.find((c) => c.id === '1fb61f51-ab6e-456e-bd98-77d2f1ddea12')!;
@@ -193,8 +208,8 @@ describe('citations (verified indexing rules)', () => {
   });
 });
 
-describe('model: branch walking', () => {
-  const convs = normalizeExport(JSON.parse(NEW));
+describe.skipIf(!newConvs)('model: branch walking', () => {
+  const convs = newConvs ?? [];
   const testConv = convs.find((c) => c.id === '1fb61f51-ab6e-456e-bd98-77d2f1ddea12')!;
 
   it('walks the default (first) branch chain root -> 4 (first branch leaf)', () => {

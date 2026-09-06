@@ -7,7 +7,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import type { Conversation } from './types';
 import { normalizeExport, formatDateTime, ParseError } from './parser';
-import { t, setLanguage, applyTranslations } from './i18n';
+import { t, setLanguage, getLanguage, applyTranslations } from './i18n';
 import { filterConversations, renderConversationList, type Filters, type SidebarHandlers } from './ui/sidebar';
 import { renderDetail } from './ui/detail';
 import { initTheme, toggleTheme, updateThemeButton, currentTheme } from './ui/theme';
@@ -648,8 +648,10 @@ function bindEvents(): void {
 
   // Language (button + modal)
   const applyLang = (lang: string) => {
+    // Session-only choice: never persisted (user request) — every load starts
+    // fresh from the browser/OS language.
     document.documentElement.setAttribute('lang', lang);
-    localStorage.setItem('dscr-language', lang);
+    markLanguageSelection(lang);
     setLanguage(lang);
     applyTranslations();
     updateThemeButton();
@@ -662,6 +664,7 @@ function bindEvents(): void {
     $('languageModalOverlay').classList.remove('active');
   };
   $('languageBtn').addEventListener('click', () => {
+    markLanguageSelection(getLanguage());
     $('languageModal').classList.add('active');
     $('languageModalOverlay').classList.add('active');
   });
@@ -794,10 +797,20 @@ function updateSortButtons(): void {
   $('sortDescBtn').classList.toggle('active', state.filters.sortDir === 'desc');
 }
 
+/** Highlight the active language button in the language modal. */
+function markLanguageSelection(lang: string): void {
+  const zh = $('langZhBtn');
+  const en = $('langEnBtn');
+  if (zh) zh.classList.toggle('selected', lang === 'zh-CN');
+  if (en) en.classList.toggle('selected', lang === 'en');
+}
+
 function initLanguage(): void {
-  const saved = localStorage.getItem('dscr-language') || 'zh-CN';
-  document.documentElement.setAttribute('lang', saved);
-  setLanguage(saved);
+  // Not persisted (user request): derive from the browser/OS language on every load.
+  const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || 'zh-CN').toLowerCase();
+  const lang = nav.startsWith('zh') ? 'zh-CN' : 'en';
+  document.documentElement.setAttribute('lang', lang);
+  setLanguage(lang);
 }
 
 function init(): void {
