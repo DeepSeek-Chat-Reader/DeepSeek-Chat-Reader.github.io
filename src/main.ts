@@ -253,12 +253,84 @@ function syncTableSortUI(): void {
   if (span) span.textContent = t(asc ? 'ascending' : 'descending');
 }
 
+/** local yyyy-mm-dd for <input type="date"> */
+function toDateInput(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** ↑/↓ marker on the currently sorted table column header. */
+function refreshSortIndicators(): void {
+  document
+    .querySelectorAll<HTMLTableCellElement>('#tablePanel thead th[data-sort]')
+    .forEach((th) => {
+      let arrow = th.querySelector<HTMLElement>('.sort-arrow');
+      if (!arrow) {
+        arrow = document.createElement('span');
+        arrow.className = 'sort-arrow';
+        th.appendChild(arrow);
+      }
+      arrow.textContent =
+        state.filters.sortField === th.dataset.sort
+          ? state.filters.sortDir === 'asc'
+            ? '↑'
+            : '↓'
+          : '';
+    });
+}
+
+/** Sync the table toolbar controls (search / dates / sort) with state. */
+function syncTableFiltersUI(): void {
+  ($('tableSearchInput') as HTMLInputElement).value = state.filters.search;
+  const dateIn = (id: string, fallbackId: string, d: Date | null) => {
+    const el = $(id) as HTMLInputElement;
+    if (d) el.value = toDateInput(d);
+    else el.value = ($(fallbackId) as HTMLInputElement).value || '';
+  };
+  dateIn('tableStartDate', 'filterStartDate', state.filters.dateStart);
+  dateIn('tableEndDate', 'filterEndDate', state.filters.dateEnd);
+  syncTableSortUI();
+  refreshSortIndicators();
+}
+
+let colResizeActive = false;
+
+/** Drag the right edge of a table header to resize that column. */
+function bindTableColumnResize(): void {
+  const thead = $('tablePanel').querySelector('thead')!;
+  const table = $('tablePanel').querySelector<HTMLTableElement>('.conv-table')!;
+  let drag: { th: HTMLTableCellElement; startX: number; startW: number } | null = null;
+  thead.addEventListener('pointerdown', (e) => {
+    const th = (e.target as HTMLElement).closest('th') as HTMLTableCellElement | null;
+    if (!th || th.classList.contains('col-check') || th.classList.contains('col-actions')) return;
+    const rect = th.getBoundingClientRect();
+    if (rect.right - e.clientX > 8) return; // only near the right edge
+    e.preventDefault();
+    drag = { th, startX: e.clientX, startW: parseFloat(getComputedStyle(th).width) || 0 };
+    colResizeActive = true;
+    document.body.classList.add('col-resizing');
+    table.classList.add('resizing-col');
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const next = Math.min(900, Math.max(48, drag.startW + (e.clientX - drag.startX)));
+    drag.th.style.width = `${next}px`;
+  });
+  window.addEventListener('pointerup', () => {
+    drag = null;
+    colResizeActive = false;
+    document.body.classList.remove('col-resizing');
+    table.classList.remove('resizing-col');
+  });
+}
+
 /** Rebuild the full-page table rows (Explorer-like columns). */
 function renderTableList(list: Conversation[]): void {
   if (!tableMode) return;
   const tbody = $('tableBody');
   if (!tbody) return;
   $('tableStats').textContent = t('conversationCount', { count: list.length });
+  refreshSortIndicators();
   tbody.innerHTML = '';
   for (const c of list) {
     const tr = document.createElement('tr');
@@ -856,7 +928,7 @@ function bindEvents(): void {
     tableMode = !tableMode;
     document.body.classList.toggle('table-mode', tableMode);
     setTableBatchButtons();
-    syncTableSortUI();
+    syncTableFiltersUI();
     setView('list');
     refreshList();
   });
@@ -881,6 +953,36 @@ function bindEvents(): void {
     syncTableSortUI();
     refreshList();
   });
+
+  // Table: click column headers to sort (click again to reverse)
+  $('tablePanel').querySelector('thead')!.addEventListener('click', (e) => {
+    const th = (e.target as HTMLElement).closest('th[data-sort]') as HTMLTableCellElement | null;
+    if (!th || colResizeActive) return;
+    const field = th.dataset.sort as Filters['sortField'];
+    if (field === state.filters.sortField) {
+      state.filters.sortDir = state.filters.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.filters.sortField = field;
+      state.filters.sortDir = 'asc';
+    }
+    syncTableSortUI();
+    refreshList();
+  });
+
+  // Table: date-range filters (same semantics as the sidebar filters)
+  ($('tableStartDate') as HTMLInputElement).addEventListener('change', (e) => {
+    const v = (e.target as HTMLInputElement).value;
+    state.filters.dateStart = v ? new Date(v) : null;
+    refreshList();
+  });
+  ($('tableEndDate') as HTMLInputElement).addEventListener('change', (e) => {
+    const v = (e.target as HTMLInputElement).value;
+    state.filters.dateEnd = v ? new Date(v) : null;
+    refreshList();
+  });
+
+  // Table: drag column header edges to resize column widths
+  bindTableColumnResize();
   $('tableBatchBtn').addEventListener('click', enterBatchMode);
   $('tableSelectAllBtn').addEventListener('click', () => sidebarHandlers.onSelectAll());
   $('tableInvertBtn').addEventListener('click', () => sidebarHandlers.onInvertSelection());
@@ -1195,7 +1297,7 @@ function init(): void {
   initTheme();
   updateThemeButton();
   updateSortButtons();
-  syncTableSortUI();
+  syncTableFiltersUI();
   setTableBatchButtons();
   setView('list');
   updateOutlineButton();

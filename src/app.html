@@ -207,6 +207,8 @@
                                 <option value="inserted_at" data-i18n="sortByStartDate"></option>
                                 <option value="updated_at" data-i18n="sortByLastDate"></option>
                                 <option value="title" data-i18n="sortTitle"></option>
+                                <option value="turns" data-i18n="colTurns"></option>
+                                <option value="chars" data-i18n="colChars"></option>
                             </select>
                             <div class="sort-direction">
                                 <button id="sortAscBtn" class="active" data-i18n="ascending"></button>
@@ -244,10 +246,14 @@
                         <option value="inserted_at" data-i18n="sortByStartDate"></option>
                         <option value="updated_at" data-i18n="sortByLastDate"></option>
                         <option value="title" data-i18n="sortTitle"></option>
+                        <option value="turns" data-i18n="colTurns"></option>
+                        <option value="chars" data-i18n="colChars"></option>
                     </select>
                     <button id="tableSortDirBtn" class="sort-dir" title="Sort direction">
                         <i class="fa-solid fa-arrow-down-wide-short"></i> <span data-i18n="descending"></span>
                     </button>
+                    <input type="date" id="tableStartDate" aria-label="Start date">
+                    <input type="date" id="tableEndDate" aria-label="End date">
                 </div>
                 <span class="table-stats" id="tableStats"></span>
                 <div class="table-actions">
@@ -263,11 +269,11 @@
                     <thead>
                         <tr>
                             <th class="col-check"></th>
-                            <th data-i18n="colTitle"></th>
-                            <th data-i18n="colStart"></th>
-                            <th data-i18n="colEnd"></th>
-                            <th data-i18n="colTurns"></th>
-                            <th data-i18n="colChars"></th>
+                            <th data-sort="title" data-i18n="colTitle"></th>
+                            <th data-sort="inserted_at" data-i18n="colStart"></th>
+                            <th data-sort="updated_at" data-i18n="colEnd"></th>
+                            <th data-sort="turns" data-i18n="colTurns"></th>
+                            <th data-sort="chars" data-i18n="colChars"></th>
                             <th class="col-actions"></th>
                         </tr>
                     </thead>

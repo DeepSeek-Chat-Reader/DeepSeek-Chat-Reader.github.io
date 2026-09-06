@@ -148,6 +148,8 @@ header {
 /* Keep the inner list at full width so the open/close animation never reflows
    the items (the sidebar clips it like a curtain while its width animates). */
 .sidebar .conversation-list { width: var(--sidebar-open-width); }
+/* On the list page the sidebar is always fully open, so the list fills it. */
+body.view-list .sidebar .conversation-list { width: 100%; }
 
 /* While reading, the list behaves like the outline sidebar: it is a normal
    flex child that pushes the content aside as it opens (width 0 -> full),
@@ -202,13 +204,14 @@ body.view-list.table-mode .list-info { display: none; }
 }
 .table-stats { font-size: 0.85rem; color: var(--muted-color); }
 .table-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.table-filters .search-box { display: flex; align-items: center; gap: 6px; min-width: min(340px, 40vw); }
+.table-filters .search-box { display: flex; align-items: center; gap: 6px; min-width: min(280px, 40vw); }
 .table-filters .search-box input { flex: 1; min-width: 120px; }
-.table-filters select, .table-filters .sort-dir { padding: 4px 8px; font-size: 0.8rem; }
+.table-filters select, .table-filters .sort-dir, .table-filters input[type="date"] { padding: 4px 8px; font-size: 0.8rem; }
+.table-filters input[type="date"] { max-width: 150px; }
 .table-actions { display: flex; gap: 6px; }
 .table-actions button { width: auto; padding: 4px 10px; font-size: 0.8rem; }
 .table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
-.conv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.conv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
 .conv-table th, .conv-table td {
   padding: 8px 10px;
   text-align: left;
@@ -225,12 +228,34 @@ body.view-list.table-mode .list-info { display: none; }
 .conv-table tbody tr { cursor: pointer; }
 .conv-table tbody tr:hover { background: rgba(52, 152, 219, 0.08); }
 .conv-table tbody tr.active { background: rgba(52, 152, 219, 0.16); }
-.conv-table .col-check, .conv-table .col-actions { width: 40px; text-align: center; }
+.conv-table .col-check, .conv-table .col-actions { text-align: center; }
+.conv-table .col-check { width: 44px; }
+.conv-table th:nth-child(2) { width: 34%; }
+.conv-table th:nth-child(3), .conv-table th:nth-child(4) { width: 132px; }
+.conv-table th:nth-child(5) { width: 84px; }
+.conv-table th:nth-child(6) { width: 112px; }
+.conv-table .col-actions { width: 150px; }
 .conv-table .col-check input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color); }
-.conv-table td.col-title { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+.conv-table td.col-title { overflow: hidden; text-overflow: ellipsis; }
 .conv-table .row-actions button {
   width: auto; padding: 2px 8px; margin-left: 4px; font-size: 0.75rem;
 }
+
+/* Sortable column headers with ↑/↓ indicator and a draggable resize grip */
+.conv-table th[data-sort] { cursor: pointer; user-select: none; }
+.conv-table th[data-sort] .sort-arrow { margin-left: 6px; font-size: 0.7rem; color: var(--primary-color); }
+.conv-table th { position: relative; }
+.conv-table th:not(.col-check):not(.col-actions)::after {
+  content: '';
+  position: absolute;
+  right: -2px; top: 0; bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 2;
+}
+.conv-table.resizing-col { cursor: col-resize; }
+.conv-table.resizing-col th, .conv-table.resizing-col td { user-select: none; }
+body.col-resizing { cursor: col-resize; user-select: none; }
 
 .resize-handle { display: none; }
 
@@ -834,7 +859,28 @@ body.view-content .content-toolbar { display: block; }
 
   .sidebar { width: 100% !important; border-right: none; }
   .list-info { display: none !important; }
-  body.view-content .sidebar { display: none; }
+  /* On narrow screens there is no room to push the content aside: opening the
+     list while reading overlays it (the original behaviour). */
+  body.view-content .sidebar {
+    display: flex;
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    z-index: 20;
+    width: min(360px, 85vw) !important;
+    border-right: 1px solid var(--border-color);
+    transform: translateX(-101%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.28s ease, visibility 0s linear 0.28s;
+  }
+  body.view-content.peek-list .sidebar {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.28s ease, visibility 0s;
+  }
+  body.view-content .sidebar .conversation-list { width: min(360px, 85vw); }
 
   .search-filters { padding: 8px; }
   .search-filters-toggle { display: block; margin-bottom: 0; }

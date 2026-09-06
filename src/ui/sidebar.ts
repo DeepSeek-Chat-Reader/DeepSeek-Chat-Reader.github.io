@@ -11,7 +11,7 @@ export interface Filters {
   search: string;
   dateStart: Date | null;
   dateEnd: Date | null;
-  sortField: 'inserted_at' | 'updated_at' | 'title';
+  sortField: 'inserted_at' | 'updated_at' | 'title' | 'turns' | 'chars';
   sortDir: 'asc' | 'desc';
 }
 
@@ -42,6 +42,21 @@ function conversationMatchesSearch(c: Conversation, term: string): boolean {
   return false;
 }
 
+/** Numeric conversation stats used by the turns/chars sort fields. */
+function convNumbers(c: Conversation): { turns: number; chars: number } {
+  let turns = 0;
+  let chars = 0;
+  for (const n of c.nodes.values()) {
+    if (!n.message) continue;
+    const types = n.message.fragments.map((f) => f.type);
+    if (types.includes('REQUEST') || types.includes('FILE')) turns++;
+    for (const f of n.message.fragments) {
+      if (isText(f)) chars += f.content.length;
+    }
+  }
+  return { turns, chars };
+}
+
 export function filterConversations(
   list: Conversation[],
   filters: Filters,
@@ -59,15 +74,16 @@ export function filterConversations(
   });
   const dir = filters.sortDir === 'asc' ? 1 : -1;
   out.sort((a, b) => {
-    let av: string | number;
-    let bv: string | number;
     if (filters.sortField === 'title') {
-      av = a.title || '';
-      bv = b.title || '';
-      return av.localeCompare(bv) * dir;
+      return (a.title || '').localeCompare(b.title || '') * dir;
     }
-    av = filters.sortField === 'inserted_at' ? a.insertedAt.getTime() : a.updatedAt.getTime();
-    bv = filters.sortField === 'inserted_at' ? b.insertedAt.getTime() : b.updatedAt.getTime();
+    if (filters.sortField === 'turns' || filters.sortField === 'chars') {
+      const av = convNumbers(a)[filters.sortField];
+      const bv = convNumbers(b)[filters.sortField];
+      return (av - bv) * dir;
+    }
+    const av = filters.sortField === 'inserted_at' ? a.insertedAt.getTime() : a.updatedAt.getTime();
+    const bv = filters.sortField === 'inserted_at' ? b.insertedAt.getTime() : b.updatedAt.getTime();
     return (av - bv) * dir;
   });
   return out;
